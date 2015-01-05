@@ -1,14 +1,19 @@
 nginx-log-zmq
 =============
 
-ZMQ logger module for nginx
+ZeroMQ logger module for nginx.
 
-_This module is not distributed with the Nginx source._ See the installation instructions.
+[ZeroMQ](http://zeromq.org), \zero-em-queue\, is a protocol for messages exchange. It's a easy
+way to communicate using any language or platform via inproc, IPC, TCP, TPIC or multicast.
+It's asynchronous and requires only a small library.
+
+_This module is not distributed with the nginx source._ See the [installation instructions](#installation).
 
 Table of Contents
 =================
 
 * [Status](#status)
+* [Description](#description)
 * [Synopsis](#synopsis)
 * [Directives](#directives)
 	* [brokerlog_server](#brokerlog_server)
@@ -26,6 +31,19 @@ Status
 
 This module is already production ready.
 
+Description
+===========
+
+This is a nginx logger module integrated with [ZeroMQ](http://zermq.org) library.
+
+`nginx-log-zmq` provides a very efficient way to log data for one or more subscribers.
+Without lose any advantage of ZeroMQ protocol it's possible to send information for
+different endpoints/subscribers at the same time. This can be useful for data consuming and processing.
+
+The format of the messages can be the same as the tradicional log format which gives a interesting way to `tail` data via network or you can explore other text formats like JSON. As in the tradicional log, it's possible to use nginx variables which are updated each request.
+
+All messages are sent asynchronously and do not block the normal behaviour of the nginx server. Like it is excepted, the connection to the the subscribers are resilient to network fails.
+
 Synopsis
 ========
 
@@ -42,7 +60,7 @@ Synopsis
 
 			# send messages to a subscriber listening at 127.0.0.1:5556
 
-			brokerlog_server secundary 127.0.0.1:5556 tcp 4 1000;
+			brokerlog_server secondary 127.0.0.1:5556 tcp 4 1000;
 
 			location /status {
 				# off all messages from brokerlog for this location
@@ -55,12 +73,12 @@ Synopsis
 				# off main messages from brokerlog for this location
 				brokerlog_off main;
 
-				# set secundary endpoint for this location
-				brokerlog_endpoint secundary "/endpoint/";
+				# set secondary endpoint for this location
+				brokerlog_endpoint secondary "/endpoint/";
 
 				# set format using multiline
 
-				brokerlog_format secundary '{"request_uri":"$request_uri",'
+				brokerlog_format secondary '{"request_uri":"$request_uri",'
 										   '{"status":"$status"}';
 			}
 		}
@@ -72,11 +90,11 @@ Directives
 
 brokerlog_server
 ----------------
-**syntax:** *brokerlog_server <definition_name> <target> <protocol> <threads> <queue size>*
+**syntax:** *brokerlog_server &lt;definition_name&gt; &lt;target&gt; &lt;protocol&gt; &lt;threads&gt; &lt;queue size&gt;*
 
-**syntax:** *brokerlog_server <definition_name> <ip>:<port> tcp <threads> <queue size>*
+**syntax:** *brokerlog_server &lt;definition_name&gt; &lt;ip&gt;:&lt;port&gt; tcp &lt;threads&gt; &lt;queue size&gt;*
 
-**syntax:** *brokerlog_server <definition_name> "<endpoint>" ipc <threads> <queue size>*
+**syntax:** *brokerlog_server &lt;definition_name&gt; "&lt;endpoint&gt;" ipc &lt;threads&gt; &lt;queue size&gt;*
 
 **default:** no
 
@@ -86,18 +104,18 @@ Configures a client subscriber to connect.
 
 The following options are required:
 
-**definition_name** <name> the name that nginx will use to identify the logger
+**definition_name** &lt;name&gt; the name that nginx will use to identify the logger
 
-**target** "<unixsocket>"|<ip>:<port> the target subscriber. If you are using IPC or INPROC
+**target** "&lt;unixsocket&gt;"|&lt;ip&gt;:&lt;port&gt; the target subscriber. If you are using IPC or INPROC
 protocols you should specify the target of the unixsocket. Otherwise, if you are using TCP
-protocol you should specify the `<ip>` and `<port>` which your ZMQ client is listening.
+protocol you should specify the `&lt;ip&gt;` and `&lt;port&gt;` which your ZMQ client is listening.
 
 [Back to TOC](#table-of-contents)
 
 brokerlog_endpoint
 ------------------
 
-**syntax:** *brokerlog_endpoint <definition_name> "<endpoint>"*
+**syntax:** *brokerlog_endpoint &lt;definition_name&gt; "&lt;endpoint&gt;"*
 
 **default:** no
 
@@ -105,9 +123,9 @@ brokerlog_endpoint
 
 Configures the endpoint of the ZMQ message
 
-**definition_name** <name> the name that nginx will use to identify the logger
+**definition_name** &lt;name&gt; the name that nginx will use to identify the logger
 
-**endpoint** <endpoint> the endpoint of the messages. This represents the endpoint prepended to
+**endpoint** &lt;endpoint&gt; the endpoint of the messages. This represents the endpoint prepended to
 the ZMQ message to be used in subscription options. If you send the message "hello" to the endpoint
 "/talk/", the message produced by the module will be "/talk/hello".
 
@@ -127,7 +145,7 @@ server {
 brokerlog_format
 ----------------
 
-**syntax:** *brokerlog_format <definition_name> "<format>"*
+**syntax:** *brokerlog_format &lt;definition_name&gt; "&lt;format&gt;"*
 
 **default:** no
 
@@ -135,9 +153,9 @@ brokerlog_format
 
 Configures the format of the ZMQ message.
 
-**definition_name** <name> the name that nginx will use to identify the logger
+**definition_name** &lt;name&gt; the name that nginx will use to identify the logger
 
-**format** <format> the format of the messages. This is the actual message sent to the broker.
+**format** &lt;format&gt; the format of the messages. This is the actual message sent to the broker.
 It follows the sames rules as the log_format directive. It's possible to use nginx variables
 inside it and it's possible to declare the format in multiline.
 
@@ -153,7 +171,7 @@ server {
 brokerlog_off
 -------------
 
-**syntax:** *brokerlog_off <definition_name>|all*
+**syntax:** *brokerlog_off &lt;definition_name&gt;|all*
 
 **default:** no
 
@@ -161,7 +179,7 @@ brokerlog_off
 
 Turn off ZMQ logging.
 
-**definition_name** <name> the name of the logger to be muted. If `all` is used, all loggers are mutted in the current location.
+**definition_name** &lt;name&gt; the name of the logger to be muted. If `all` is used, all loggers are mutted in the current location.
 
 [Back to TOC](#table-of-contents)
 
@@ -210,7 +228,7 @@ Please submit bug reports, wishlists, or patches by
 Authors
 =======
 
- * Daniel Bento <daniel-s-bento@telecom.pt>
+ * Daniel Bento &lt;daniel-s-bento@telecom.pt&gt;
 
 [Back to TOC](#table-of-contents)
 
