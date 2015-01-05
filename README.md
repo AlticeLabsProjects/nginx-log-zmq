@@ -42,7 +42,7 @@ different endpoints/subscribers at the same time. This can be useful for data co
 
 The format of the messages can be the same as the tradicional log format which gives a interesting way to `tail` data via network or you can explore other text formats like JSON. As in the tradicional log, it's possible to use nginx variables which are updated each request.
 
-All messages are sent asynchronously and do not block the normal behaviour of the nginx server. Like it is excepted, the connection to the the subscribers are resilient to network fails.
+All messages are sent asynchronously and do not block the normal behaviour of the nginx server. As excepted, the connection to the the subscribers are resilient to network fails.
 
 Synopsis
 ========
