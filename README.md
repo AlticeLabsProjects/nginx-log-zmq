@@ -63,14 +63,14 @@ Synopsis
 			brokerlog_server secondary 127.0.0.1:5556 tcp 4 1000;
 
 			location /status {
-				# off all messages from brokerlog for this location
+				# mute all messages from brokerlog for this location
 
 				brokerlog_off all;
 			}
 
 			location /endpoint {
 
-				# off main messages from brokerlog for this location
+				# mute main messages from brokerlog for this location
 				brokerlog_off main;
 
 				# set secondary endpoint for this location
@@ -211,7 +211,7 @@ make install
 
 [Back to TOC](#table-of-contents)
 
-Compability
+Compatibility
 ===========
 
 The following versions of nginx should work with this module:
@@ -227,7 +227,7 @@ Report Bugs
 
 Please submit bug reports, wishlists, or patches by
 
-1. creating a ticket on the [issue tracking interface](http://github.com/openresty/drizzle-nginx-module/issues) provided by GitHub
+1. creating a ticket on the [issue tracking interface](http://github.com/danielfbento/nginx-log-zmq/issues) provided by GitHub
 
 [Back to TOC](#table-of-contents)
 
