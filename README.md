@@ -112,9 +112,9 @@ protocol you should specify the `<ip>` and `<port>` which your ZMQ client is lis
 
 **protocol** ipc|tcp|inproc the protocol to be used for communication. IPC uses a path to an unix socket which is defined by `target`. For TCP ip and port needs to specified.
 
-**threads** "&lt;num&gt;" number of threads to be used for each ZeroMQ context.
+**threads** &lt;num&gt; number of threads to be used for each ZeroMQ context.
 
-**queue_size** "&lt;num&gt;" the size of the queue used to maintain messages waiting to be sent.
+**queue_size** &lt;num&gt; the size of the queue used to maintain messages waiting to be sent.
 
 [Back to TOC](#table-of-contents)
 
