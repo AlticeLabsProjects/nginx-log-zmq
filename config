@@ -1,0 +1,42 @@
+ngx_feature_name=
+ngx_feature_run=yes
+ngx_feature_incs="#include <zmq.h>"
+ngx_feature_test="if (ZMQ_VERSION < 20100) { return 1; }"
+
+if [ -n "$LIBZMQ_INC" -o -n "$LIBZMQ_LIB" ]; then
+    # specified by LIBZMQ_INC and/or LIBZMQ_LIB
+	ngx_feature="ZeroMQ library in directories specified by LIBZMQ_INC ($LIBZMQ_INC) and/or LIBZMQ_LIB ($LIBZMQ_LIB)"
+	ngx_feature_path="$LIBZMQ_INC"
+	if [ $NGX_RPATH = YES ]; then
+		ngx_feature_libs="-R$LIBZMQ_LIB -L$LIBZMQ_LIB -lzmq"
+	else
+		ngx_feature_libs="-L$LIBZMQ_LIB -lzmq"
+	fi
+	. auto/feature
+else
+	ngx_feature="ZeroMQ library"
+	ngx_feature_path=
+	ngx_feature_libs="-lzmq"
+	. auto/feature
+fi
+
+if [ $ngx_found = no ]; then
+	echo "$0: error: requires libzmq"
+	exit 1
+fi
+
+ngx_addon_name=ngx_http_brokerlog_module
+
+CORE_INCS="$CORE_INCS $ngx_feature_path $ngx_addon_dir/src"
+CORE_LIBS="$CORE_LIBS $ngx_feature_libs"
+
+HTTP_INCS="$HTTP_INCS $ngx_addon_dir/src $ngx_objs_dir"
+HTTP_MODULES="$HTTP_MODULES ngx_http_brokerlog_module"
+
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+				$ngx_addon_dir/src/ngx_http_brokerlog_module.c \
+				$ngx_addon_dir/src/ngx_http_brokerlog_zmq.c"
+
+NGX_ADDON_DEPS="$NGX_ADDON_DEPS \
+				$ngx_addon_dir/src/ngx_http_brokerlog_module.h \
+				$ngx_addon_dir/src/ngx_http_brokerlog_zmq.h"
