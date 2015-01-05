@@ -623,11 +623,6 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() initialize element conf %V", &value[1]);
 		lecf->log = cf->cycle->log;
 		lecf->off = 0;
-/*		lecf->data_lengths = NGX_CONF_UNSET_PTR;
-		lecf->data_values = NGX_CONF_UNSET_PTR;
-		lecf->endpoint_lengths = NGX_CONF_UNSET_PTR;
-		lecf->endpoint_values = NGX_CONF_UNSET_PTR;
-*/
 	}
 
 	/* set the type of protocol TCP|IPC|INPROC */
@@ -840,32 +835,17 @@ ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		memcpy(lecf->name->data, value[1].data, value[1].len);
 
 		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() init element conf %V", &value[1]);
-/*		lecf->data_lengths = NGX_CONF_UNSET_PTR;
-		lecf->data_values = NGX_CONF_UNSET_PTR;
-		lecf->endpoint_lengths = NGX_CONF_UNSET_PTR;
-		lecf->endpoint_values = NGX_CONF_UNSET_PTR;
-*/
 		lecf->server = NGX_CONF_UNSET_PTR;
 		lecf->ctx = NGX_CONF_UNSET_PTR;
 	} else {
 		if (lecf->data_lengths != NULL && lecf->data_lengths != NGX_CONF_UNSET_PTR) {
 			ngx_array_destroy(lecf->data_lengths);
-/*			lecf->data_lengths = NGX_CONF_UNSET_PTR;*/
 		}
 		if (lecf->data_values != NULL && lecf->data_values != NGX_CONF_UNSET_PTR) {
 			ngx_array_destroy(lecf->data_values);
-/*			lecf->data_values = NGX_CONF_UNSET_PTR;*/
 		}
 		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() clean data %V", &value[1]);
 	}
-
-/*	lecf->data_lengths = ngx_array_create(cf->pool, 16, sizeof(ngx_int_t));
-	lecf->data_values = ngx_array_create(cf->pool, 16, sizeof(ngx_str_t));
-
-	if (lecf->data_lengths == NULL || lecf->data_values == NULL) {
-		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "error creating data format");
-		return NGX_CONF_ERROR;
-	}*/
 
 	/* we support multiline logs format */
 
@@ -1006,28 +986,17 @@ ngx_http_brokerlog_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint() initialize element conf %V", &value[1]);
 		lecf->log = cf->cycle->log;
 		lecf->off = 0;
-/*		lecf->data_lengths = NGX_CONF_UNSET_PTR;
-		lecf->data_values = NGX_CONF_UNSET_PTR;
-		lecf->endpoint_lengths = NGX_CONF_UNSET_PTR;
-		lecf->endpoint_values = NGX_CONF_UNSET_PTR;
-*/
 		lecf->server = NGX_CONF_UNSET_PTR;
 		lecf->ctx = NGX_CONF_UNSET_PTR;
 	} else {
 		if (lecf->endpoint_lengths != NULL && lecf->endpoint_lengths != NGX_CONF_UNSET_PTR) {
 			ngx_array_destroy(lecf->endpoint_lengths);
-/*			lecf->endpoint_lengths = NGX_CONF_UNSET_PTR;*/
 		}
 		if (lecf->endpoint_values != NULL && lecf->endpoint_values != NGX_CONF_UNSET_PTR) {
 			ngx_array_destroy(lecf->endpoint_values);
-/*			lecf->endpoint_values = NGX_CONF_UNSET_PTR;*/
 		}
 		ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint() clean data %V", &value[1]);
 	}
-
-/*	lecf->endpoint_lengths = ngx_array_create(cf->pool, 16, sizeof(ngx_int_t));
-	lecf->endpoint_values = ngx_array_create(cf->pool, 16, sizeof(ngx_str_t));
-*/
 
 	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint() value: \"%V\"", &value[2]);
 
@@ -1189,54 +1158,4 @@ ngx_http_brokerlog_postconf(ngx_conf_t *cf)
 static void
 ngx_http_brokerlog_exitmaster(ngx_cycle_t *cycle)
 {
-/*	ngx_http_brokerlog_ctx_t *blctx;
-	ngx_http_brokerlog_main_conf_t *blcf;
-	ngx_http_brokerlog_element_conf_t *lecf;
-#if (NGX_DEBUG)
-	ngx_log_t				 *log = cycle->log;
-#endif
-	ngx_uint_t				  i;
-	blcf = (ngx_http_brokerlog_main_conf_t *)
-			ngx_get_conf(cycle->conf_ctx, ngx_http_brokerlog_module);
-
-	if (NULL == blcf) {
-		return;
-	}
-*/
-	/*lecf = blcf->logs->elts;
-
-	for (i = 0; i < blcf->logs->nelts; i++)
-	{
-		blctx = (ngx_http_brokerlog_ctx_t *) &lecf[i].ctx;
-
-		if (NULL == blctx) {
-			continue;
-		}
-
-#if (NGX_DEBUG)
-		ngx_log_error(NGX_LOG_INFO, log, 0, "NGINX ZMQ MODULE: exitmaster(): close %s", lecf[i].name);
-#endif
-
-		zmq_term_ctx(blctx);
-
-		ngx_pfree(cycle->pool, blctx);
-	}
-#if (NGX_DEBUG)
-	ngx_log_error(NGX_LOG_INFO, log, 0, "NGINX ZMQ MODULE: exitmaster()");
-#endif*/
 }
-/*
-static ngx_http_brokerlog_element_conf_t
-ngx_http_brokerlog_create_element_conf(ngx_http_brokerlog_loc_conf_t *conf, ngx_str_t *name)
-{
-	ngx_http_brokerlog_create_element_conf *elconf;
-	ngx_uint_t  i;
-
-	if (conf->logs == NULL) {
-		return NULL;
-	}
-
-	for (i=0; i < conf->logs->nelts; i++)
-	{
-	}
-}*/
