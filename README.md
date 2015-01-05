@@ -108,7 +108,13 @@ The following options are required:
 
 **target** "&lt;unixsocket&gt;"|&lt;ip&gt;:&lt;port&gt; the target subscriber. If you are using IPC or INPROC
 protocols you should specify the target of the unixsocket. Otherwise, if you are using TCP
-protocol you should specify the `&lt;ip&gt;` and `&lt;port&gt;` which your ZMQ client is listening.
+protocol you should specify the `<ip>` and `<port>` which your ZMQ client is listening.
+
+**protocol** ipc|tcp|inproc the protocol to be used for communication. IPC uses a path to an unix socket which is defined by `target`. For TCP ip and port needs to specified.
+
+**threads** "&lt;num&gt;" number of threads to be used for each ZeroMQ context.
+
+**queue_size** "&lt;num&gt;" the size of the queue used to maintain messages waiting to be sent.
 
 [Back to TOC](#table-of-contents)
 
@@ -179,7 +185,7 @@ brokerlog_off
 
 Turn off ZMQ logging.
 
-**definition_name** &lt;name&gt; the name of the logger to be muted. If `all` is used, all loggers are mutted in the current location.
+**definition_name** &lt;name&gt; the name of the logger to be muted. If `all` is used, all loggers are muted in the current location.
 
 [Back to TOC](#table-of-contents)
 
