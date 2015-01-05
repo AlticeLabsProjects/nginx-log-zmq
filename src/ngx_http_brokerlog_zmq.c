@@ -28,25 +28,25 @@
  * reflected on the number of threads created by each nginx process.
  *
  * @param ctx A ngx_http_brokerlog_ctx_t pointer representing the actual
- *			  location context
+ *              location context
  * @return An int representing the OK (0) or error status
  * @note We should redefine this to ngx_int_t with NGX_OK | NGX_ERROR
  */
 int
 zmq_init_ctx(ngx_http_brokerlog_ctx_t *ctx)
 {
-	ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ctx->log, 0, "ZMQ: zmq_init_ctx()");
-	/* each location has it's own context, we need to verify if this is the best
-	 * solution. We don't want to consume a lot of ZMQ threads to maintain the
-	 * communication */
-	ctx->zmq_context = zmq_init((int) ctx->iothreads);
-	if (NULL == ctx->zmq_context) {
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, ctx->log, 0, "ZMQ: zmq_init(%d) fail", ctx->iothreads);
-		return -1;
-	}
-	ctx->ccreated = 1;
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, ctx->log, 0, "ZMQ: zmq_init(%d) success", ctx->iothreads);
-	return 0;
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ctx->log, 0, "ZMQ: zmq_init_ctx()");
+    /* each location has it's own context, we need to verify if this is the best
+     * solution. We don't want to consume a lot of ZMQ threads to maintain the
+     * communication */
+    ctx->zmq_context = zmq_init((int) ctx->iothreads);
+    if (NULL == ctx->zmq_context) {
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, ctx->log, 0, "ZMQ: zmq_init(%d) fail", ctx->iothreads);
+        return -1;
+    }
+    ctx->ccreated = 1;
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, ctx->log, 0, "ZMQ: zmq_init(%d) success", ctx->iothreads);
+    return 0;
 }
 
 /**
@@ -62,31 +62,31 @@ zmq_init_ctx(ngx_http_brokerlog_ctx_t *ctx)
 int
 zmq_create_ctx(ngx_http_brokerlog_element_conf_t *cf)
 {
-	int  rc = 0;
+    int  rc = 0;
 
-	/* TODO: should we create the context structure here? */
-	if (NULL == cf || NULL == cf->ctx) {
-		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() no configuration");
-		return 1;
-	}
-	/* context is already created, return NGX_OK */
-	if (1 == cf->ctx->ccreated) {
-		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() already created");
-		return 0;
-	}
+    /* TODO: should we create the context structure here? */
+    if (NULL == cf || NULL == cf->ctx) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() no configuration");
+        return 1;
+    }
+    /* context is already created, return NGX_OK */
+    if (1 == cf->ctx->ccreated) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() already created");
+        return 0;
+    }
 
-	/* create location context */
-	cf->ctx->iothreads = cf->iothreads;
-	rc = zmq_init_ctx(cf->ctx);
+    /* create location context */
+    cf->ctx->iothreads = cf->iothreads;
+    rc = zmq_init_ctx(cf->ctx);
 
-	if (rc != 0) {
-		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() error");
-		ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() error");
-		return rc;
-	}
+    if (rc != 0) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() error");
+        ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() error");
+        return rc;
+    }
 
-	ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() success");
-	return 0;
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_ctx() success");
+    return 0;
 }
 
 /**
@@ -102,23 +102,23 @@ zmq_create_ctx(ngx_http_brokerlog_element_conf_t *cf)
 void
 zmq_term_ctx(ngx_http_brokerlog_ctx_t *ctx)
 {
-	/* close and nullify context zmq_socket */
-	if (ctx->zmq_socket) {
-		zmq_close(ctx->zmq_socket);
-		ctx->zmq_socket = NULL;
-	}
+    /* close and nullify context zmq_socket */
+    if (ctx->zmq_socket) {
+        zmq_close(ctx->zmq_socket);
+        ctx->zmq_socket = NULL;
+    }
 
-	/* term and nullify context zmq_context */
-	if (ctx->zmq_context) {
-		zmq_term(ctx->zmq_context);
-		ctx->zmq_context = NULL;
-	}
+    /* term and nullify context zmq_context */
+    if (ctx->zmq_context) {
+        zmq_term(ctx->zmq_context);
+        ctx->zmq_context = NULL;
+    }
 
-	/* nullify log */
-	if (ctx->log) {
-		ctx->log = NULL;
-	}
-	return;
+    /* nullify log */
+    if (ctx->log) {
+        ctx->log = NULL;
+    }
+    return;
 }
 
 /**
@@ -135,71 +135,71 @@ zmq_term_ctx(ngx_http_brokerlog_ctx_t *ctx)
 int
 zmq_create_socket(ngx_http_brokerlog_element_conf_t *cf)
 {
-	int linger = ZMQ_NGINX_LINGER, rc = 0;
-	uint64_t qlen = ZMQ_NGINX_QUEUE_LENGTH;
+    int linger = ZMQ_NGINX_LINGER, rc = 0;
+    uint64_t qlen = ZMQ_NGINX_QUEUE_LENGTH;
 
-	char *connection;
+    char *connection;
 
-	/* create a simple char * to the connection name */
-	connection = calloc(cf->server->connection->len + 1, sizeof(char));
-	memcpy(connection, cf->server->connection->data, cf->server->connection->len);
+    /* create a simple char * to the connection name */
+    connection = calloc(cf->server->connection->len + 1, sizeof(char));
+    memcpy(connection, cf->server->connection->data, cf->server->connection->len);
 
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() to %s", connection);
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() to %s", connection);
 
-	/* override the default qlen if cf as any */
-	if (cf->qlen != qlen) {
-		qlen = (uint64_t) cf->qlen;
-	}
+    /* override the default qlen if cf as any */
+    if (cf->qlen != qlen) {
+        qlen = (uint64_t) cf->qlen;
+    }
 
-	/* verify if we have a context created */
-	if (NULL == cf->ctx->zmq_context) {
-		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() no context to create a socket");
-		return -1;
-	}
+    /* verify if we have a context created */
+    if (NULL == cf->ctx->zmq_context) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() no context to create a socket");
+        return -1;
+    }
 
-	/* verify if we have already a socket associated */
-	if (0 == cf->ctx->screated) {
-		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() create socket");
-		cf->ctx->zmq_socket = zmq_socket(cf->ctx->zmq_context, ZMQ_PUB);
-		/* verify if it was created */
-		if (NULL == cf->ctx->zmq_socket) {
-			ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() socket not created");
-			ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() socket not created");
-			return -1;
-		}
-		cf->ctx->screated = 1;
-	}
+    /* verify if we have already a socket associated */
+    if (0 == cf->ctx->screated) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() create socket");
+        cf->ctx->zmq_socket = zmq_socket(cf->ctx->zmq_context, ZMQ_PUB);
+        /* verify if it was created */
+        if (NULL == cf->ctx->zmq_socket) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() socket not created");
+            ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() socket not created");
+            return -1;
+        }
+        cf->ctx->screated = 1;
+    }
 
-	/* set socket option ZMQ_LINGER */
-	rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_LINGER, &linger, sizeof(linger));
-	if ( rc != 0) {
-		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_LINGER");
-		ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_LINGER");
-		return -1;
-	}
+    /* set socket option ZMQ_LINGER */
+    rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_LINGER, &linger, sizeof(linger));
+    if ( rc != 0) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_LINGER");
+        ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_LINGER");
+        return -1;
+    }
 
-	/* set socket option ZMQ_HWM */
-	rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_HWM, &qlen, sizeof(qlen));
-	if ( rc != 0) {
-		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_HWM");
-		ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_HWM");
-		return -1;
-	}
+    /* set socket option ZMQ_HWM */
+    rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_HWM, &qlen, sizeof(qlen));
+    if ( rc != 0) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_HWM");
+        ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_HWM");
+        return -1;
+    }
 
-	/* open zmq connection to */
-	rc = zmq_connect(cf->ctx->zmq_socket, connection);
-	if ( rc != 0) {
-		ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error connecting");
-		ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error connecting");
-		return -1;
-	}
-	ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() end");
+    /* open zmq connection to */
+    rc = zmq_connect(cf->ctx->zmq_socket, connection);
+    if ( rc != 0) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error connecting");
+        ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error connecting");
+        return -1;
+    }
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() end");
 
-	/* please, clean all your temporary variables */
-	free(connection);
+    /* please, clean all your temporary variables */
+    free(connection);
 
-	/* if all was OK, we should return 0 */
-	return rc;
+    /* if all was OK, we should return 0 */
+    return rc;
 }
 
 /**
@@ -216,58 +216,58 @@ zmq_create_socket(ngx_http_brokerlog_element_conf_t *cf)
  */
 ngx_int_t
 brokerlog_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, ngx_str_t *output) {
-	size_t msg_len = 0;
-	char *msg;
-	char *endp;
+    size_t msg_len = 0;
+    char *msg;
+    char *endp;
 
-	/* the final message sent to broker is composed by endpoint+data
-	 * eg: endpoint = /stratus/, data = {'num':1}
-	 * final message /stratus/{'num':1}
-	 */
-	msg_len = endpoint->len + data->len;
+    /* the final message sent to broker is composed by endpoint+data
+     * eg: endpoint = /stratus/, data = {'num':1}
+     * final message /stratus/{'num':1}
+     */
+    msg_len = endpoint->len + data->len;
 
-	endp = strndup((char *) endpoint->data, endpoint->len);
-	if (NULL == endp) {
-		return NGX_ERROR;
-	}
+    endp = strndup((char *) endpoint->data, endpoint->len);
+    if (NULL == endp) {
+        return NGX_ERROR;
+    }
 
-	/* strncat needs a null char in the end of the string to work well */
-	endp[endpoint->len] = '\0';
+    /* strncat needs a null char in the end of the string to work well */
+    endp[endpoint->len] = '\0';
 
-	msg = ngx_pcalloc(pool, msg_len);
+    msg = ngx_pcalloc(pool, msg_len);
 
-	if (NULL == msg) {
-		return NGX_ERROR;
-	}
+    if (NULL == msg) {
+        return NGX_ERROR;
+    }
 
-	msg = strncat(msg, endp, endpoint->len);
+    msg = strncat(msg, endp, endpoint->len);
 
-	if (NULL == msg) {
-		free(endp);
-		return NGX_ERROR;
-	}
+    if (NULL == msg) {
+        free(endp);
+        return NGX_ERROR;
+    }
 
-	msg = strncat(msg, (const char *) data->data, data->len);
+    msg = strncat(msg, (const char *) data->data, data->len);
 
-	if (NULL == msg) {
-		free(endp);
-		return NGX_ERROR;
-	}
+    if (NULL == msg) {
+        free(endp);
+        return NGX_ERROR;
+    }
 
-	output->len =  msg_len;
-	output->data = ngx_pcalloc(pool, msg_len);
+    output->len =  msg_len;
+    output->data = ngx_pcalloc(pool, msg_len);
 
-	/* copy the final message to the output data and clean all */
-	memcpy(output->data, msg, msg_len);
+    /* copy the final message to the output data and clean all */
+    memcpy(output->data, msg, msg_len);
 
-	if ( NULL == output->data) {
-		free(endp);
-		ngx_pfree(pool, msg);
-		return NGX_ERROR;
-	}
+    if ( NULL == output->data) {
+        free(endp);
+        ngx_pfree(pool, msg);
+        return NGX_ERROR;
+    }
 
-	free(endp);
-	ngx_pfree(pool, msg);
+    free(endp);
+    ngx_pfree(pool, msg);
 
-	return NGX_OK;
+    return NGX_OK;
 }

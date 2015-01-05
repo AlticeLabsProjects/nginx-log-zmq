@@ -34,8 +34,8 @@ typedef ngx_addr_t ngx_brokerlog_addr_t;
  */
 typedef enum{
     TCP = 0,
-	IPC,
-	INPROC
+    IPC,
+    INPROC
 } ngx_brokerlog_server_kind;
 
 /**
@@ -45,13 +45,12 @@ typedef enum{
  * string with the connection name (prepended with tcp://)
  */
 typedef struct {
-    ngx_brokerlog_addr_t        peer_addr;   /**< Address URL */
-    ngx_brokerlog_server_kind   kind;        /**< Type of server (TCP|IPC|INPROC) */
-	ngx_str_t					*connection; /**< Final connection string
-												  tcp://<ip>:<port>
-												  ipc://<endpoint>
-												  inproc://<endpoint>
-											 */
+    ngx_brokerlog_addr_t        peer_addr;    /**< Address URL */
+    ngx_brokerlog_server_kind   kind;         /**< Type of server (TCP|IPC|INPROC) */
+    ngx_str_t                    *connection; /**< Final connection string
+                                                   tcp://<ip>:<port>
+                                                   ipc://<endpoint>
+                                                   inproc://<endpoint> */
 } ngx_brokerlog_server_t;
 
 /**
@@ -61,12 +60,12 @@ typedef struct {
  * during all module phases and nginx requests
  */
 typedef struct {
-	ngx_log_t *log;		   /**< Pointer to the logger */
-	ngx_int_t iothreads;   /**< Number of threads to create */
-	void *zmq_context;     /**< The ZMQ Context Initiator */
-	void *zmq_socket;      /**< The ZMQ Socket to use */
-	int	 ccreated;         /**< Was the context created? */
-	int  screated;         /**< Was the socket created? */
+    ngx_log_t *log;           /**< Pointer to the logger */
+    ngx_int_t iothreads;      /**< Number of threads to create */
+    void *zmq_context;        /**< The ZMQ Context Initiator */
+    void *zmq_socket;         /**< The ZMQ Socket to use */
+    int     ccreated;         /**< Was the context created? */
+    int  screated;            /**< Was the socket created? */
 } ngx_http_brokerlog_ctx_t;
 
 /**
@@ -75,21 +74,21 @@ typedef struct {
  * @note nginx has a ngx flag type, we should change sset/fset/eset to that type
  */
 typedef struct {
-    ngx_brokerlog_server_t *server;			  /**< Configuration server */
-	ngx_int_t   			iothreads;		  /**< Configuration number of threads */
- 	ngx_int_t				qlen;			  /**< Configuration queue length */
-    ngx_array_t            *data_lengths;	  /**< Data length after format and compiling */
-    ngx_array_t            *data_values;	  /**< Data values */
-    ngx_array_t            *endpoint_lengths; /**< Endpoint length after format and compiling */
-    ngx_array_t            *endpoint_values;  /**< Endpoint values */
-	ngx_cycle_t			   *cycle;			  /**< Current configuration cycle */
-	ngx_http_brokerlog_ctx_t *ctx;			  /**< Current module context */
-	ngx_str_t			   *name;			  /**< Configuration name */
-	ngx_log_t			   *log;			  /**< Pointer to the logger */
-	ngx_uint_t			   sset;			  /**< Was the server setted? */
-	ngx_uint_t			   fset;			  /**< Was the format setted? */
-	ngx_uint_t			   eset;			  /**< Was the endpoint setted? */
-	ngx_uint_t			   off;				  /**< Is this element deactivated? */
+    ngx_brokerlog_server_t *server;              /**< Configuration server */
+    ngx_int_t               iothreads;           /**< Configuration number of threads */
+    ngx_int_t               qlen;                /**< Configuration queue length */
+    ngx_array_t            *data_lengths;        /**< Data length after format and compiling */
+    ngx_array_t            *data_values;         /**< Data values */
+    ngx_array_t            *endpoint_lengths;    /**< Endpoint length after format and compiling */
+    ngx_array_t            *endpoint_values;     /**< Endpoint values */
+    ngx_cycle_t            *cycle;               /**< Current configuration cycle */
+    ngx_http_brokerlog_ctx_t *ctx;               /**< Current module context */
+    ngx_str_t              *name;                /**< Configuration name */
+    ngx_log_t              *log;                 /**< Pointer to the logger */
+    ngx_uint_t              sset;                /**< Was the server setted? */
+    ngx_uint_t              fset;                /**< Was the format setted? */
+    ngx_uint_t              eset;                /**< Was the endpoint setted? */
+    ngx_uint_t              off;                 /**< Is this element deactivated? */
 } ngx_http_brokerlog_element_conf_t;
 
 /**
@@ -98,9 +97,9 @@ typedef struct {
  * @note nginx as ngx flag type, we should change off to that type
  */
 typedef struct {
-	ngx_array_t			   *logs;			  /**< Array of logs to handle in this location */
-	ngx_uint_t				off;			  /**< Should we off all the logs in this location? */
-	ngx_log_t				*log;			  /**< Pointer to the logger */
+    ngx_array_t              *logs;              /**< Array of logs to handle in this location */
+    ngx_uint_t                off;               /**< Should we off all the logs in this location? */
+    ngx_log_t                *log;               /**< Pointer to the logger */
 } ngx_http_brokerlog_loc_conf_t;
 
 /**
@@ -109,8 +108,8 @@ typedef struct {
  * @note for now, this configuration doesn't has any use, but we should mantain it for futher requests
  */
 typedef struct {
-	ngx_cycle_t			   *cycle;			  /**< Pointer to the current nginx cycle */
-	ngx_log_t			   *log;			  /**< Pointer to the logger */
+    ngx_cycle_t             *cycle;              /**< Pointer to the current nginx cycle */
+    ngx_log_t               *log;                /**< Pointer to the logger */
 } ngx_http_brokerlog_main_conf_t;
 
 #include "ngx_http_brokerlog_zmq.h"
