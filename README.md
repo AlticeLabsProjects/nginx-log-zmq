@@ -5,7 +5,7 @@ ZeroMQ logger module for nginx.
 
 [ZeroMQ](http://zeromq.org), \zero-em-queue\, is a protocol for messages exchange. It's a easy
 way to communicate using any language or platform via inproc, IPC, TCP, TPIC or multicast.
-It's asynchronous and requires only a small library.
+It's asynchronous and only requires a small library.
 
 _This module is not distributed with the nginx source._ See the [installation instructions](#installation).
 
@@ -37,8 +37,8 @@ Description
 This is a nginx logger module integrated with [ZeroMQ](http://zermq.org) library.
 
 `nginx-log-zmq` provides a very efficient way to log data for one or more subscribers.
-Without lose any advantage of ZeroMQ protocol it's possible to send information for
-different endpoints/subscribers at the same time. This can be useful for data consuming and processing.
+It's possible to send information for different endpoints/subscribers at the same time
+without lose any advantage of ZeroMQ protocol. This can be useful for data consuming and processing.
 
 The format of the messages can be the same as the tradicional log format which gives a interesting way to `tail` data via network or you can explore other text formats like JSON. As in the tradicional log, it's possible to use nginx variables which are updated each request.
 
@@ -110,7 +110,7 @@ The following options are required:
 protocols you should specify the target of the unixsocket. Otherwise, if you are using TCP
 protocol you should specify the `<ip>` and `<port>` which your ZMQ client is listening.
 
-**protocol** ipc|tcp|inproc the protocol to be used for communication. IPC uses a path to an unix socket which is defined by `target`. For TCP ip and port needs to specified.
+**protocol** ipc|tcp|inproc the protocol to be used for communication. IPC uses a path to an unix socket which is defined by `target`. For TCP, ip and port needs to specified.
 
 **threads** &lt;num&gt; number of threads to be used for each ZeroMQ context.
 
