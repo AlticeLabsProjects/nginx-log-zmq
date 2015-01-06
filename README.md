@@ -36,13 +36,11 @@ Description
 
 This is a nginx logger module integrated with [ZeroMQ](http://zermq.org) library.
 
-`nginx-log-zmq` provides a very efficient way to log data for one or more subscribers.
-It's possible to send information for different endpoints/subscribers at the same time
-without lose any advantage of ZeroMQ protocol. This can be useful for data consuming and processing.
+`nginx-log-zmq` provides a very efficient way to log data for one or more PUB/SUB subscribers, over one or more different endpoints. This can be useful for data gathering and processing.
 
-The format of the messages can be the same as the tradicional log format which gives a interesting way to `tail` data via network or you can explore other text formats like JSON. As in the tradicional log, it's possible to use nginx variables which are updated each request.
+The message format can be the same as the tradicional log format which gives a interesting way to `tail` data via the network or exploring other text formats like JSON. As with the traditional log, it's possible to use nginx variables updated each request.
 
-All messages are sent asynchronously and do not block the normal behaviour of the nginx server. As excepted, the connection to the the subscribers are resilient to network fails.
+All messages are sent asynchronously and do not block the normal behaviour of the nginx server. As expected, the connections are resilient to network failures.
 
 Synopsis
 ========
@@ -90,58 +88,52 @@ Directives
 
 brokerlog_server
 ----------------
-**syntax:** *brokerlog_server &lt;definition_name&gt; &lt;target&gt; &lt;protocol&gt; &lt;threads&gt; &lt;queue size&gt;*
-
-**syntax:** *brokerlog_server &lt;definition_name&gt; &lt;ip&gt;:&lt;port&gt; tcp &lt;threads&gt; &lt;queue size&gt;*
-
-**syntax:** *brokerlog_server &lt;definition_name&gt; "&lt;endpoint&gt;" ipc &lt;threads&gt; &lt;queue size&gt;*
+**syntax:** *brokerlog_server &lt;definition_name&gt; &lt;address&gt; &lt;ipc|tcp&gt; &lt;threads&gt; &lt;queue size&gt;*
 
 **default:** no
 
 **context:** server, location
 
-Configures a client subscriber to connect.
+Configures a server (PUB/SUB subscriber) to connect to.
 
 The following options are required:
 
-**definition_name** &lt;name&gt; the name that nginx will use to identify the logger
+**definition_name** &lt;name&gt; - the name that nginx will use to identify this logger instance.
 
-**target** "&lt;unixsocket&gt;"|&lt;ip&gt;:&lt;port&gt; the target subscriber. If you are using IPC or INPROC
-protocols you should specify the target of the unixsocket. Otherwise, if you are using TCP
-protocol you should specify the `<ip>` and `<port>` which your ZMQ client is listening.
+**address** &lt;path&gt;|&lt;ipaddress&gt;:&lt;port&gt; - the subscriber's address. If you are using the IPC
+protocol, you should specify the `<path>` for the unix socket. If you are using the TCP
+protocol, you should specify the `<ipaddress>` and `<port>` where your ZeroMQ subscriber is listening.
 
-**protocol** ipc|tcp|inproc the protocol to be used for communication. IPC uses a path to an unix socket which is defined by `target`. For TCP, ip and port needs to specified.
+**protocol** &lt;ipc|tcp&gt; - the protocol to be used for communication.
 
-**threads** &lt;num&gt; number of threads to be used for each ZeroMQ context.
+**threads** &lt;integer&gt; - the number of I/O threads to be used.
 
-**queue_size** &lt;num&gt; the size of the queue used to maintain messages waiting to be sent.
+**queue_size** &lt;integer&gt; - the maximum queue size for messages waiting to be sent.
 
 [Back to TOC](#table-of-contents)
 
 brokerlog_endpoint
 ------------------
 
-**syntax:** *brokerlog_endpoint &lt;definition_name&gt; "&lt;endpoint&gt;"*
+**syntax:** *brokerlog_endpoint &lt;definition_name&gt; "&lt;topic&gt;"*
 
 **default:** no
 
 **context:** server, location
 
-Configures the endpoint of the ZMQ message
+Configures the topic for the ZeroMQ messages.
 
-**definition_name** &lt;name&gt; the name that nginx will use to identify the logger
+**definition_name** &lt;name&gt; - the name that nginx will use to identify this logger instance.
 
-**endpoint** &lt;endpoint&gt; the endpoint of the messages. This represents the endpoint prepended to
-the ZMQ message to be used in subscription options. If you send the message "hello" to the endpoint
-"/talk/", the message produced by the module will be "/talk/hello".
+**topic** &lt;topic&gt; - the topic for the messages. This is a string (which can be a nginx variable) prepended to every sent message. For example, if you send the message "hello" to the "/talk:" topic, the message will end up as "/talk:hello".
 
-It's possible to use nginx variables inside the endpoint string:
+Example:
 
 ```
 server {
 	brokerlog_server main "/tmp/example.ipc" 4 1000;
 
-	# send a message for for an endpoint based on response status
+	# send a message for for an topic based on response status
 	brokerlog_endpoint main "/remote/$status";
 }
 ```
@@ -157,13 +149,11 @@ brokerlog_format
 
 **context:** server, location
 
-Configures the format of the ZMQ message.
+Configures the ZeroMQ message format.
 
-**definition_name** &lt;name&gt; the name that nginx will use to identify the logger
+**definition_name** &lt;name&gt; - the name that nginx will use to identify this logger instance.
 
-**format** &lt;format&gt; the format of the messages. This is the actual message sent to the broker.
-It follows the sames rules as the log_format directive. It's possible to use nginx variables
-inside it and it's possible to declare the format in multiline.
+**format** &lt;format&gt; - the format for the messages. This defines the actual messages sent to the PUB/SUB subscriber. It follows the sames rules as the standard `log_format` directive. It is possible to use nginx variables here, and also to break it over multiple lines.
 
 ```
 server {
@@ -183,29 +173,24 @@ brokerlog_off
 
 **context:** server, location
 
-Turn off ZMQ logging.
+Turn off ZeroMQ logging in the current context.
 
-**definition_name** &lt;name&gt; the name of the logger to be muted. If `all` is used, all loggers are muted in the current location.
+**definition_name** &lt;name&gt; the name of the logger instance to be muted. If the special `all` name is used, all logger instances are muted.
 
 [Back to TOC](#table-of-contents)
 
 Installation
 ============
 
-You can compile this module with nginx core's source by hand:
+To build a nginx binary containting this module:
 
-* Download the lasted version of the release tarball of this module from nginx-log-zmq [file list](http://github.com/danielfbento/nginx-log-zmq/tags).
-* Grab the nginx source code from [nginx.org](http://www.nginx.org), for example, the version 1.6.2 (see [nginx compatibility](#compatibility)), and then build the source with this module:
+* Download the latest version of this module from [GitHub](http://github.com/danielfbento/nginx-log-zmq/).
+* Grab the nginx source code from [nginx.org](http://www.nginx.org), for example, version 1.6.2 (see [nginx compatibility](#compatibility)), and then build it like so:
 
 ```
-wget 'http://nginx.org/download/nginx-1.6.2.tar.gz'
-tar -xvzf nginx-1.6.2.tar.gz
-cd nginx-1.6.2/
+./configure --prefix=/usr/local/nginx --add-module=/path/to/nginx-log-zmq
 
-./configure --prefix=/usr/local/nginx \
-			--add-module=/path/to/nginx-log-zmq
-
-make -j2
+make
 make install
 ```
 
@@ -214,7 +199,7 @@ make install
 Compatibility
 ===========
 
-The following versions of nginx should work with this module:
+The following versions of nginx are known to work with this module:
 
 * 1.6.x (last tested: 1.6.2)
 * 1.5.x
@@ -225,16 +210,14 @@ The following versions of nginx should work with this module:
 Report Bugs
 ===========
 
-Please submit bug reports, wishlists, or patches by
-
-1. creating a ticket on the [issue tracking interface](http://github.com/danielfbento/nginx-log-zmq/issues) provided by GitHub
+Bug reports, wishlists, or patches are welcome. You can submit them on our [GitHub repository](http://github.com/danielfbento/nginx-log-zmq/).
 
 [Back to TOC](#table-of-contents)
 
 Authors
 =======
 
- * Daniel Bento &lt;daniel-s-bento@telecom.pt&gt;
+ * Dani Bento &lt;dani@telecom.pt&gt;
 
 [Back to TOC](#table-of-contents)
 
