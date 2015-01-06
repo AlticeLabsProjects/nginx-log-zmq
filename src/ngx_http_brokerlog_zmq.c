@@ -5,7 +5,7 @@
 
 /**
  * @file ngx_http_brokerlog_zmq.c
- * @author Daniel Bento <daniel-s-bento@telecom.pt>
+ * @author Dani Bento <dani@telecom.pt>
  * @date 1 March 2014
  * @brief Brokerlog ZMQ
  *
