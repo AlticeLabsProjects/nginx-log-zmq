@@ -224,7 +224,7 @@ brokerlog_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, 
      * eg: endpoint = /stratus/, data = {'num':1}
      * final message /stratus/{'num':1}
      */
-    msg_len = endpoint->len + data->len;
+    msg_len = endpoint->len + data->len + 1;
 
     endp = strndup((char *) endpoint->data, endpoint->len);
     if (NULL == endp) {
@@ -254,13 +254,13 @@ brokerlog_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, 
         return NGX_ERROR;
     }
 
-    output->len =  msg_len;
-    output->data = ngx_pcalloc(pool, msg_len);
+    output->len = msg_len - 1;  /* the trailing '\0' isn't part of the message */
+    output->data = ngx_pcalloc(pool, output->len);
 
     /* copy the final message to the output data and clean all */
-    memcpy(output->data, msg, msg_len);
+    memcpy(output->data, msg, output->len);
 
-    if ( NULL == output->data) {
+    if (NULL == output->data) {
         free(endp);
         ngx_pfree(pool, msg);
         return NGX_ERROR;
