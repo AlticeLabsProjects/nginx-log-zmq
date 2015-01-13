@@ -205,69 +205,30 @@ zmq_create_socket(ngx_http_brokerlog_element_conf_t *cf)
 /**
  * @brief serialize a ZMQ message
  *
- * Process all input data and the endpoint and build a message to be sended by ZMQ
+ * Process all input data and the endpoint and build a message to be sent by ZMQ
  *
  * @param pool A ngx_pool_t pointer to the nginx memory manager
  * @param endpoint A ngx_str_t pointer to the current endpoint configured to use
- * @param data A ngx_str_t pointer with the message compiled to be sended
- * @param output A ngx_str_t pointer which will be pointed to the final message to be sent
+ * @param data A ngx_str_t pointer with the message compiled to be sent
+ * @param output A ngx_str_t pointer which will point to the final message to be sent
  * @return An ngx_int_t with NGX_OK | NGX_ERROR
- * @note It will be cool if we use the *msg and *endp from the nginx memory pool too
  */
 ngx_int_t
 brokerlog_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, ngx_str_t *output) {
-    size_t msg_len = 0;
-    char *msg;
-    char *endp;
-
     /* the final message sent to broker is composed by endpoint+data
      * eg: endpoint = /stratus/, data = {'num':1}
      * final message /stratus/{'num':1}
      */
-    msg_len = endpoint->len + data->len + 1;
-
-    endp = strndup((char *) endpoint->data, endpoint->len);
-    if (NULL == endp) {
-        return NGX_ERROR;
-    }
-
-    /* strncat needs a null char in the end of the string to work well */
-    endp[endpoint->len] = '\0';
-
-    msg = ngx_pcalloc(pool, msg_len);
-
-    if (NULL == msg) {
-        return NGX_ERROR;
-    }
-
-    msg = strncat(msg, endp, endpoint->len);
-
-    if (NULL == msg) {
-        free(endp);
-        return NGX_ERROR;
-    }
-
-    msg = strncat(msg, (const char *) data->data, data->len);
-
-    if (NULL == msg) {
-        free(endp);
-        return NGX_ERROR;
-    }
-
-    output->len = msg_len - 1;  /* the trailing '\0' isn't part of the message */
-    output->data = ngx_pcalloc(pool, output->len);
-
-    /* copy the final message to the output data and clean all */
-    memcpy(output->data, msg, output->len);
+    output->len = endpoint->len + data->len;
+    output->data = ngx_palloc(pool, output->len);
 
     if (NULL == output->data) {
-        free(endp);
-        ngx_pfree(pool, msg);
+        output->len = 0;
         return NGX_ERROR;
     }
 
-    free(endp);
-    ngx_pfree(pool, msg);
+    memcpy(output->data, (const char *) endpoint->data, endpoint->len);
+    memcpy(output->data + endpoint->len, (const char *) data->data, data->len);
 
     return NGX_OK;
 }
