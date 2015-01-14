@@ -289,7 +289,7 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
         /* initialize zmq message */
         zmq_msg_init_size(&query, broker_data.len);
 
-        memcpy(zmq_msg_data(&query), broker_data.data, broker_data.len);
+        ngx_memcpy(zmq_msg_data(&query), broker_data.data, broker_data.len);
 
         if (zmq_send(clecf->ctx->zmq_socket, &query, 0) == 0) {
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() message sent: %V", &broker_data);
@@ -450,7 +450,7 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                     eleprev[j].name->data, conf->logs->nelts);
             for (i = 0; i < conf->logs->nelts; i++) {
                 ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() search %s match", eleconf[i].name->data);
-                if ((eleprev[j].name->len == eleconf[i].name->len)
+                if (eleprev[j].name && eleconf[i].name && eleprev[j].name->len == eleconf[i].name->len
                         && ngx_strncmp(eleprev[j].name->data, eleconf[i].name->data, eleprev[j].name->len) == 0)
                 {
                    found = 1;
@@ -601,9 +601,6 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    ngx_memzero(lecf->ctx, sizeof(ngx_http_brokerlog_ctx_t));
-    lecf->ctx->ccreated = 0;
-    lecf->ctx->screated = 0;
     lecf->ctx->log = cf->cycle->log;
 
     /* update definition name and cycle log*/
@@ -614,7 +611,7 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_server() lecf->name == NULL");
         return NGX_CONF_ERROR;
     }
-    lecf->name->data = ngx_pcalloc(cf->pool, value[1].len);
+    lecf->name->data = ngx_palloc(cf->pool, value[1].len);
     lecf->name->len = value[1].len;
     ngx_memcpy(lecf->name->data, value[1].data, value[1].len);
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() initialize element conf %V", &value[1]);
@@ -716,8 +713,8 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     /* create the final connection endpoint to be used on socket connection */
-    endpoint->connection = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
-    endpoint->connection->data = ngx_pcalloc(cf->pool, connlen);
+    endpoint->connection = ngx_palloc(cf->pool, sizeof(ngx_str_t));
+    endpoint->connection->data = ngx_palloc(cf->pool, connlen);
     endpoint->connection->len = connlen;
     ngx_memcpy(endpoint->connection->data, connection, connlen);
     lecf->server = endpoint;
@@ -818,14 +815,14 @@ ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() create lecf %V", &value[1]);
         lecf->log = cf->cycle->log;
         lecf->off = 0;
-        lecf->name = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
+        lecf->name = ngx_palloc(cf->pool, sizeof(ngx_str_t));
         if (lecf->name == NULL) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_format() lecf->name == NULL");
             return NGX_CONF_ERROR;
         }
-        lecf->name->data = ngx_pcalloc(cf->pool, value[1].len);
+        lecf->name->data = ngx_palloc(cf->pool, value[1].len);
         lecf->name->len = value[1].len;
-        memcpy(lecf->name->data, value[1].data, value[1].len);
+        ngx_memcpy(lecf->name->data, value[1].data, value[1].len);
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() init element conf %V", &value[1]);
         lecf->server = NGX_CONF_UNSET_PTR;
@@ -847,10 +844,9 @@ ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         log_len = log_len + value[i].len;
     }
 
-    log_format = ngx_pnalloc(cf->pool, sizeof(ngx_str_t));
-    ngx_memzero(log_format, sizeof(ngx_str_t));
+    log_format = ngx_palloc(cf->pool, sizeof(ngx_str_t));
     log_format->len = log_len;
-    log_format->data = ngx_pnalloc(cf->pool, log_len + 1);
+    log_format->data = ngx_palloc(cf->pool, log_len + 1);
 
     p = &(log_format->data[0]);
 
@@ -968,13 +964,13 @@ ngx_http_brokerlog_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint() create lecf name");
 
-        lecf->name = ngx_pcalloc(cf->pool, sizeof(ngx_str_t));
+        lecf->name = ngx_palloc(cf->pool, sizeof(ngx_str_t));
         if (lecf->name == NULL) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_endpoint() lecf->name == NULL");
             return NGX_CONF_ERROR;
         }
-        lecf->name->data = ngx_pcalloc(cf->pool, value[1].len);
-        memcpy(lecf->name->data, value[1].data, value[1].len);
+        lecf->name->data = ngx_palloc(cf->pool, value[1].len);
+        ngx_memcpy(lecf->name->data, value[1].data, value[1].len);
         lecf->name->len = value[1].len;
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint() initialize element conf %V", &value[1]);
         lecf->log = cf->cycle->log;
@@ -1087,7 +1083,7 @@ ngx_http_brokerlog_set_off(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_off() lecf->name == NULL");
             return NGX_CONF_ERROR;
         }
-        lecf->name->data = ngx_pcalloc(cf->pool, value[1].len);
+        lecf->name->data = ngx_palloc(cf->pool, value[1].len);
         lecf->name->len = value[1].len;
         ngx_memcpy(lecf->name->data, value[1].data, value[1].len);
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off() initialize element conf %V", &value[1]);
