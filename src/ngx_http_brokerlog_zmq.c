@@ -133,7 +133,7 @@ zmq_term_ctx(ngx_http_brokerlog_ctx_t *ctx)
  * @warning It's important to look at here and define one socket per worker
  */
 int
-zmq_create_socket(ngx_http_brokerlog_element_conf_t *cf)
+zmq_create_socket(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *cf)
 {
     int linger = ZMQ_NGINX_LINGER, rc = 0;
     uint64_t qlen = ZMQ_NGINX_QUEUE_LENGTH;
@@ -141,8 +141,8 @@ zmq_create_socket(ngx_http_brokerlog_element_conf_t *cf)
     char *connection;
 
     /* create a simple char * to the connection name */
-    connection = calloc(cf->server->connection->len + 1, sizeof(char));
-    memcpy(connection, cf->server->connection->data, cf->server->connection->len);
+    connection = ngx_pcalloc(pool, cf->server->connection->len + 1);
+    ngx_memcpy(connection, cf->server->connection->data, cf->server->connection->len);
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() to %s", connection);
 
@@ -196,7 +196,7 @@ zmq_create_socket(ngx_http_brokerlog_element_conf_t *cf)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() end");
 
     /* please, clean all your temporary variables */
-    free(connection);
+    ngx_pfree(pool, connection);
 
     /* if all was OK, we should return 0 */
     return rc;
@@ -227,8 +227,8 @@ brokerlog_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, 
         return NGX_ERROR;
     }
 
-    memcpy(output->data, (const char *) endpoint->data, endpoint->len);
-    memcpy(output->data + endpoint->len, (const char *) data->data, data->len);
+    ngx_memcpy(output->data, (const char *) endpoint->data, endpoint->len);
+    ngx_memcpy(output->data + endpoint->len, (const char *) data->data, data->len);
 
     return NGX_OK;
 }

@@ -279,7 +279,7 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() verify ZMQ socket");
         if (NULL == clecf->ctx->zmq_socket && 0 == clecf->ctx->screated) {
             ngx_log_debug0(NGX_LOG_INFO, log, 0, "brokerlog_zmq: handler() creating socket");
-            rc = zmq_create_socket(clecf);
+            rc = zmq_create_socket(pool, clecf);
             if (rc != 0) {
                 ngx_log_error(NGX_LOG_INFO, log, 0, "brokerlog_zmq: handler() error creating socket");
                 continue;
