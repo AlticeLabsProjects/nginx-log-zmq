@@ -451,7 +451,7 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
             for (i = 0; i < conf->logs->nelts; i++) {
                 ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() search %s match", eleconf[i].name->data);
                 if ((eleprev[j].name->len == eleconf[i].name->len)
-                        && ngx_strcmp(eleprev[j].name->data, eleconf[i].name->data) == 0)
+                        && ngx_strncmp(eleprev[j].name->data, eleconf[i].name->data, eleprev[j].name->len) == 0)
                 {
                    found = 1;
                    ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() %s found", eleprev[j].name->data);
@@ -565,7 +565,7 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         lecf = llcf->logs->elts;
         for (i = 0; i < llcf->logs->nelts; i++) {
             if (lecf[i].name->len == value[1].len
-                    && ngx_strcmp(lecf[i].name->data, value[1].data) == 0) {
+                    && ngx_strncmp(lecf[i].name->data, value[1].data, lecf[i].name->len) == 0) {
                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_server: target repeated");
                return NGX_CONF_ERROR;
             }
@@ -778,7 +778,7 @@ ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         for (i = 0; i < llcf->logs->nelts; i++) {
             clecf = ((ngx_http_brokerlog_element_conf_t *) llcf->logs->elts) + i;
             if ((clecf->name != NULL) && (clecf->name->len == value[1].len)
-                    && (ngx_strcmp(clecf->name->data, value[1].data) == 0)) {
+                    && (ngx_strncmp(clecf->name->data, value[1].data, clecf->name->len) == 0)) {
                found = 1;
                lecf = clecf;
                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() found %V", &value[1]);
@@ -932,7 +932,7 @@ ngx_http_brokerlog_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             clecf = ((ngx_http_brokerlog_element_conf_t *) llcf->logs->elts) + i;
             /* we are literally searching for the name */
             if ((clecf->name != NULL) && (clecf->name->len == value[1].len)
-                    && (ngx_strcmp(clecf->name->data, value[1].data) == 0))
+                    && (ngx_strncmp(clecf->name->data, value[1].data, clecf->name->len) == 0))
             {
           found = 1;
           lecf = clecf;
@@ -1025,7 +1025,7 @@ ngx_http_brokerlog_set_off(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_brokerlog_loc_conf_t        *llcf = conf;
     ngx_http_brokerlog_element_conf_t    *lecf, *clecf;
     ngx_str_t                            *value;
-    ngx_uint_t                            i, found = 0;
+    ngx_uint_t                           i, found = 0;
 #if (NGX_DEBUG)
     ngx_log_t                            *log = cf->log;
 #endif
@@ -1035,7 +1035,7 @@ ngx_http_brokerlog_set_off(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
    */
     value = cf->args->elts;
 
-    if ((value[1].len == 3) && (ngx_strcmp(value[1].data, "all") == 0)) {
+    if ((value[1].len == 3) && (ngx_strncmp(value[1].data, "all", value[1].len) == 0)) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off() ... all");
         llcf->off = 1;
         return NGX_CONF_OK;
@@ -1050,7 +1050,7 @@ ngx_http_brokerlog_set_off(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             clecf = ((ngx_http_brokerlog_element_conf_t *) llcf->logs->elts) + i;
             /* we are literally searching for the name */
             if ((clecf->name != NULL) && (clecf->name->len == value[1].len)
-                    && (ngx_strcmp(clecf->name->data, value[1].data) == 0)) {
+                    && (ngx_strncmp(clecf->name->data, value[1].data, clecf->name->len) == 0)) {
                found = 1;
                lecf = clecf;
                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off() ... %V", &value[1]);
