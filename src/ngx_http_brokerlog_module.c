@@ -199,10 +199,9 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
             continue;
         }
 
-
         /* we set the server variable... but we can use it? */
-        if(NULL == clecf->server){
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() no server to log");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() checking server to log");
+        if (NULL == clecf->server) {
             ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no server to log");
             continue;
         } else {
@@ -210,29 +209,29 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
         }
 
         /* we set the data format... but we don't have any content to sent? */
-        if(NULL == clecf->data_lengths){
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() no format to log");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() checking format to log");
+        if (NULL == clecf->data_lengths) {
             ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no format to log");
             continue;
         }
 
         /* we set the endpoint... but we don't have any valid endpoint? */
-        if(NULL == clecf->endpoint_lengths){
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() no endpoint to log");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() checking endpoint to log");
+        if (NULL == clecf->endpoint_lengths) {
             ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no endpoint to log");
             continue;
         }
 
         /* process all data variables and write them back to the data values */
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() script data");
         if (NULL == ngx_http_script_run(r, &data, clecf->data_lengths->elts, 0, clecf->data_values->elts)) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() error script data");
             ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() error script data");
             continue;
         }
 
         /* process all endpoint variables and write them back the the endpoint values */
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() script endpoint");
         if (NULL == ngx_http_script_run(r, &endpoint, clecf->endpoint_lengths->elts, 0, clecf->endpoint_values->elts)) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() error script endpoint");
             ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() error script endpoint");
             continue;
         }
@@ -241,15 +240,16 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() logging to server");
 
         /* no data */
-        if( 0 == data.len ){
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() no data to send");
+        if (0 == data.len) {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() no message to log");
             continue;
         }
 
         /* serialize to the final message format */
         serializer = &brokerlog_serialize_zmq;
 
-        if( NGX_ERROR == (*serializer)(pool, &endpoint, &data, &broker_data) ){
+        ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() serializing notification message");
+        if (NGX_ERROR == (*serializer)(pool, &endpoint, &data, &broker_data)) {
             ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() error serializing notification message");
             ngx_pfree(pool, broker_data.data);
             continue;
