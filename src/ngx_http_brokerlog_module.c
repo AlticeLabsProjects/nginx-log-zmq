@@ -177,7 +177,7 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
         }
 
         /* we only proceed if all the variables were setted: endpoint, server, format */
-        if (clecf->eset == 0 || clecf->fset == 0 || clecf->sset == 0) {
+        if (clecf->off == 0 && (clecf->eset == 0 || clecf->fset == 0 || clecf->sset == 0)) {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() eset == fset == sset == 0");
             continue;
         }
