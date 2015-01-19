@@ -155,7 +155,7 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
 
     /* simply return NGX_OK if location logs are off */
     if (lccf->off == 1) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: log off - no handle");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() all logs off");
         return NGX_OK;
     }
 
@@ -177,8 +177,9 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
         }
 
         /* we only proceed if all the variables were setted: endpoint, server, format */
-        if (clecf->off == 0 && (clecf->eset == 0 || clecf->fset == 0 || clecf->sset == 0)) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() eset == fset == sset == 0");
+        if (clecf->eset == 0 || clecf->fset == 0 || clecf->sset == 0) {
+            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() eset=%d, fset=%d, sset=%d",
+                                                       clecf->eset, clecf->fset, clecf->sset);
             continue;
         }
 
@@ -188,13 +189,13 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
             ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no element name");
             continue;
         } else {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() setting up %s", clecf->name->data);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() setting up %V", clecf->name);
         }
 
         /* pass to the next log if this log is set to off */
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: log %d - %s ", clecf->off, clecf->name->data);
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() log %V off=%d", clecf->name, clecf->off);
         if (clecf->off == 1) {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: log off - %s ", clecf->name->data);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() log %V disabled", clecf->name);
             continue;
         }
 
@@ -205,7 +206,7 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
             ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no server to log");
             continue;
         } else {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() server connection %s", clecf->server->connection->data);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() server connection %V", clecf->server->connection);
         }
 
         /* we set the data format... but we don't have any content to sent? */
@@ -446,15 +447,15 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() search to merge");
         for (j = 0; j < prev->logs->nelts; j++) {
             found = 0;
-            ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() search %s on %d elements",
-                    eleprev[j].name->data, conf->logs->nelts);
+            ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() search %V on %d elements",
+                    eleprev[j].name, conf->logs->nelts);
             for (i = 0; i < conf->logs->nelts; i++) {
-                ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() search %s match", eleconf[i].name->data);
+                ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() search %V match", eleconf[i].name);
                 if (eleprev[j].name && eleconf[i].name && eleprev[j].name->len == eleconf[i].name->len
                         && ngx_strncmp(eleprev[j].name->data, eleconf[i].name->data, eleprev[j].name->len) == 0)
                 {
                    found = 1;
-                   ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() %s found", eleprev[j].name->data);
+                   ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() %V found", eleprev[j].name);
                    if (eleconf[i].server == NGX_CONF_UNSET_PTR) {
                        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf() set server");
                        eleconf[i].server = eleprev[j].server;
@@ -488,10 +489,10 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                 }
             }
             if (found == 0) {
-                ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() %s not found", eleprev[j].name->data);
+                ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() %V not found", eleprev[j].name);
                 element = ngx_array_push(conf->logs);
                 if (NULL == element) {
-                    ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() element null %s", eleprev[j].name->data);
+                    ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf() element null %V", eleprev[j].name);
                 }
                 element = eleprev + j;
                 element->off = eleprev[j].off;
@@ -683,21 +684,21 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         case TCP:
             zmq_hdlen = ZMQ_TCP_HLEN;
             connlen = u.url.len + zmq_hdlen;
-            connection = (char *) ngx_pcalloc(cf->pool, sizeof(char) * (connlen));
+            connection = (char *) ngx_pcalloc(cf->pool, connlen + 1);
             ngx_memcpy(connection, ZMQ_TCP_HANDLER, zmq_hdlen);
             ngx_memcpy(&connection[zmq_hdlen], u.url.data, u.url.len);
             break;
         case IPC:
             zmq_hdlen = ZMQ_IPC_HLEN;
             connlen = u.url.len + zmq_hdlen;
-            connection = (char *) ngx_pcalloc(cf->pool, sizeof(char) * (connlen));
+            connection = (char *) ngx_pcalloc(cf->pool, connlen + 1);
             ngx_memcpy(connection, ZMQ_IPC_HANDLER, zmq_hdlen);
             ngx_memcpy(&connection[zmq_hdlen], u.url.data, u.url.len);
             break;
         case INPROC:
             zmq_hdlen = ZMQ_INPROC_HLEN;
             connlen = u.url.len + zmq_hdlen;
-            connection = (char *) ngx_pcalloc(cf->pool, sizeof(char) * (connlen));
+            connection = (char *) ngx_pcalloc(cf->pool, connlen + 1);
             ngx_memcpy(connection, ZMQ_INPROC_HANDLER, zmq_hdlen);
             ngx_memcpy(&connection[zmq_hdlen], u.url.data, u.url.len);
             break;
