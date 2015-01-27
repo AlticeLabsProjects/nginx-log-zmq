@@ -64,21 +64,21 @@ static void ngx_http_brokerlog_exitmaster(ngx_cycle_t *cycle);
 static ngx_command_t  ngx_http_brokerlog_commands[] = {
 
     { ngx_string("brokerlog_server"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE5,
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE5,
       ngx_http_brokerlog_set_server,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
 
     { ngx_string("brokerlog_format"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_2MORE,
+      NGX_HTTP_MAIN_CONF|NGX_CONF_2MORE,
       ngx_http_brokerlog_set_format,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
 
     { ngx_string("brokerlog_endpoint"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE2,
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE2,
       ngx_http_brokerlog_set_endpoint,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
