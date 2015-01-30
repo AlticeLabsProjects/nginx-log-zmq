@@ -57,7 +57,9 @@ static char *ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, v
 static char *ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_brokerlog_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_brokerlog_set_off(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static void  ngx_http_brokerlog_element_conf_free(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *element);
+
+static ngx_http_brokerlog_element_conf_t *ngx_http_brokerlog_create_definition(ngx_conf_t *cf, ngx_http_brokerlog_main_conf_t *bkmc, ngx_str_t *name);
+static ngx_http_brokerlog_loc_element_conf_t *ngx_http_brokerlog_create_location_element(ngx_conf_t *cf, ngx_http_brokerlog_loc_conf_t *llcf, ngx_str_t *name);
 
 static ngx_int_t ngx_http_brokerlog_postconf(ngx_conf_t *cf);
 static void ngx_http_brokerlog_exitmaster(ngx_cycle_t *cycle);
@@ -157,7 +159,7 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
 
     /* simply return NGX_OK if location logs are off */
     if (lccf->off == 1) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() all logs off");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): all logs off");
         return NGX_OK;
     }
 
@@ -172,11 +174,11 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
 
         clelcf = lelcf + i;
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() %V, off==%d",
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): %V, off=%d",
                        clelcf->element->name, clelcf->off);
 
         if (clelcf->off == 1) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() lelcf->off = 1");
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): element off");
             continue;
         }
 
@@ -184,92 +186,84 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
 
         /* worst case? we get a null element ?! */
         if (NULL == clecf) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() no element config");
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): no element config");
             continue;
         }
 
         /* we only proceed if all the variables were setted: endpoint, server, format */
         if (clecf->eset == 0 || clecf->fset == 0 || clecf->sset == 0) {
-            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() eset=%d, fset=%d, sset=%d",
+            ngx_log_debug3(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): eset=%d, fset=%d, sset=%d",
                                                        clecf->eset, clecf->fset, clecf->sset);
             continue;
         }
 
         /* our configuration doesn't has a name? some error ocorred */
-        if (NULL == clecf->name) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() no element name");
-            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no element name");
+        if (NULL == clecf->name || 0 == clecf->name->len) {
+            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler(): no element name");
             continue;
         } else {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() setting up %V", clecf->name);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): setting up \"%V\"", clecf->name);
         }
 
-        /* pass to the next log if this log is set to off */
-        /*ngx_log_debug2(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() log %V off=%d", clecf->name, clecf->off);
-        if (clecf->off == 1) {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() log %V disabled", clecf->name);
-            continue;
-        }*/
-
         /* we set the server variable... but we can use it? */
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() checking server to log");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): checking server to log");
         if (NULL == clecf->server) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no server to log");
+            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler(): no server to log");
             continue;
         } else {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() server connection %V", clecf->server->connection);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): server connection \"%V\"", clecf->server->connection);
         }
 
         /* we set the data format... but we don't have any content to sent? */
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() checking format to log");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): checking format to log");
         if (NULL == clecf->data_lengths) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no format to log");
+            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler(): no format to log");
             continue;
         }
 
         /* we set the endpoint... but we don't have any valid endpoint? */
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() checking endpoint to log");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): checking endpoint to log");
         if (NULL == clecf->endpoint_lengths) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no endpoint to log");
+            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler(): no endpoint to log");
             continue;
         }
 
         /* process all data variables and write them back to the data values */
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() script data");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): script data");
         if (NULL == ngx_http_script_run(r, &data, clecf->data_lengths->elts, 0, clecf->data_values->elts)) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() error script data");
+            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler(): error script data");
             continue;
         }
 
         /* process all endpoint variables and write them back the the endpoint values */
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() script endpoint");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): script endpoint");
         if (NULL == ngx_http_script_run(r, &endpoint, clecf->endpoint_lengths->elts, 0, clecf->endpoint_values->elts)) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() error script endpoint");
+            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler(): error script endpoint");
             continue;
         }
 
         /* yes, we must go on */
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() logging to server");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): logging to server");
 
         /* no data */
         if (0 == data.len) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() no message to log");
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): no message to log");
             continue;
         }
 
         /* serialize to the final message format */
         serializer = &brokerlog_serialize_zmq;
 
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() serializing message");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): serializing message");
         if (NGX_ERROR == (*serializer)(pool, &endpoint, &data, &broker_data)) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() error serializing message");
+            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler(): error serializing message");
             ngx_pfree(pool, broker_data.data);
             continue;
         }
 
         /* no context? we dont create any */
         if (NULL == clecf->ctx) {
-            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler() no context");
+            ngx_log_error(NGX_LOG_ERR, log, 0, "brokerlog_zmq: handler(): no context");
             continue;
         }
 
@@ -278,23 +272,23 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
         rc = 1; /* we should have a rc = 0 after this call */
 
         /* create zmq context if needed */
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() verify ZMQ context");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): verify ZMQ context");
         if ((NULL == clecf->ctx->zmq_context) && (0 == clecf->ctx->ccreated)) {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() creating context");
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): creating context");
             rc = zmq_create_ctx(clecf);
             if (rc != 0) {
-                ngx_log_error(NGX_LOG_INFO, log, 0, "brokerlog_zmq: handler() error creating context");
+                ngx_log_error(NGX_LOG_INFO, log, 0, "brokerlog_zmq: handler(): error creating context");
                 continue;
             }
         }
 
         /* open zmq socket if needed */
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() verify ZMQ socket");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): verify ZMQ socket");
         if (NULL == clecf->ctx->zmq_socket && 0 == clecf->ctx->screated) {
-            ngx_log_debug0(NGX_LOG_INFO, log, 0, "brokerlog_zmq: handler() creating socket");
+            ngx_log_debug0(NGX_LOG_INFO, log, 0, "brokerlog_zmq: handler(): creating socket");
             rc = zmq_create_socket(pool, clecf);
             if (rc != 0) {
-                ngx_log_error(NGX_LOG_INFO, log, 0, "brokerlog_zmq: handler() error creating socket");
+                ngx_log_error(NGX_LOG_INFO, log, 0, "brokerlog_zmq: handler(): error creating socket");
                 continue;
             }
         }
@@ -305,9 +299,9 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
         ngx_memcpy(zmq_msg_data(&query), broker_data.data, broker_data.len);
 
         if (zmq_send(clecf->ctx->zmq_socket, &query, 0) == 0) {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() message sent: %V", &broker_data);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): message sent: %V", &broker_data);
         } else {
-            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler() message NOT sent: %V", &broker_data);
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): message not sent: %V", &broker_data);
         }
 
         /* free all for the next iteration */
@@ -332,10 +326,11 @@ ngx_http_brokerlog_create_main_conf(ngx_conf_t *cf)
 {
     ngx_http_brokerlog_main_conf_t *bkmc;
 
-    ngx_log_error(NGX_LOG_INFO, cf->cycle->log, 0, "brokerlog_zmq: create_main_conf()");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->cycle->log, 0, "brokerlog_zmq: create_main_conf()");
 
     bkmc = ngx_pcalloc(cf->pool, sizeof(ngx_http_brokerlog_main_conf_t));
     if (bkmc == NULL) {
+        ngx_log_error(NGX_LOG_INFO, cf->log, 0, "\"brokerlog_zmq\" error creating main configuration");
         return NULL;
     }
 
@@ -343,9 +338,12 @@ ngx_http_brokerlog_create_main_conf(ngx_conf_t *cf)
     bkmc->log = cf->log;
     bkmc->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_element_conf_t));
     if (bkmc->logs == NULL) {
+        ngx_log_error(NGX_LOG_INFO, cf->log, 0, "\"brokerlog_zmq\" error creating main definitions");
         return NULL;
     }
 	ngx_memzero(bkmc->logs->elts, bkmc->logs->size);
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->cycle->log, 0, "brokerlog_zmq: create_main_conf(): return OK");
 
     return bkmc;
 }
@@ -363,11 +361,14 @@ ngx_http_brokerlog_init_main_conf(ngx_conf_t *cf, void *conf)
 {
     ngx_http_brokerlog_main_conf_t *bkmc = conf;
 
-    ngx_log_error(NGX_LOG_INFO, cf->cycle->log, 0, "brokerlog_zmq: init_main_conf()");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: init_main_conf()");
 
     if (conf == NULL) {
+        ngx_log_error(NGX_LOG_INFO, cf->log, 0, "\"brokerlog_zmq\" main configuration not defined");
         return NGX_CONF_ERROR;
     }
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: init_main_conf(): return OK");
 
     return NGX_CONF_OK;
 }
@@ -387,21 +388,25 @@ ngx_http_brokerlog_create_loc_conf(ngx_conf_t *cf)
 {
     ngx_http_brokerlog_loc_conf_t  *conf;
 
-    ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: create_loc_conf()");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: create_loc_conf()");
 
     conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_brokerlog_loc_conf_t));
     if (conf == NULL) {
+        ngx_log_error(NGX_LOG_INFO, cf->log, 0, "\"brokerlog_zmq\" error creating location configuration");
         return NGX_CONF_ERROR;
     }
 
     conf->off = 0;
     conf->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_loc_element_conf_t));
     if (conf->logs == NULL) {
+        ngx_log_error(NGX_LOG_INFO, cf->log, 0, "\"brokerlog_zmq\" error creating location elements");
         return NGX_CONF_ERROR;
     }
 	ngx_memzero(conf->logs->elts, conf->logs->size);
     conf->logs_definition = NGX_CONF_UNSET_PTR;
     conf->log = cf->log;
+
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: create_loc_conf(): return OK");
 
     return conf;
 }
@@ -433,11 +438,11 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_brokerlog_module);
 
     if (bkmc == NULL) {
-        ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog main configuration not setted");
+        ngx_log_error(NGX_LOG_INFO, cf->log, 0, "\"brokerlog_zmq\" main configuration not defined");
         return NGX_CONF_ERROR;
     }
 
-    ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: merge_loc_conf()");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf()");
 
     if (NGX_CONF_UNSET == conf->off) {
         conf->off = 0;
@@ -447,59 +452,57 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->log = prev->log;
     }
 
-  if (NULL == conf->logs_definition || NGX_CONF_UNSET_PTR == conf->logs_definition) {
-    conf->logs_definition = (ngx_array_t *) prev->logs_definition;
-  }
+    if (NULL == conf->logs_definition || NGX_CONF_UNSET_PTR == conf->logs_definition) {
+        conf->logs_definition = (ngx_array_t *) prev->logs_definition;
+    }
 
-  element = (ngx_http_brokerlog_element_conf_t *) prev->logs_definition->elts;
+    element = (ngx_http_brokerlog_element_conf_t *) prev->logs_definition->elts;
 
-  if (NULL == conf->logs || NGX_CONF_UNSET_PTR == conf->logs) {
-      ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): no log reference");
-      conf->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_loc_element_conf_t));
-      if (conf->logs == NULL) {
-          ngx_log_error(NGX_LOG_INFO, cf->log, 0, "brokerlog_zmq: error creating location logs");
-          return NGX_CONF_ERROR;
-      }
-      ngx_memzero(conf->logs->elts, conf->logs->size);
-  }
+    if (NULL == conf->logs || NGX_CONF_UNSET_PTR == conf->logs) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): no log reference");
+        conf->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_loc_element_conf_t));
+        if (conf->logs == NULL) {
+            ngx_log_error(NGX_LOG_INFO, cf->log, 0, "\"brokerlog_zmq\": error creating location logs");
+            return NGX_CONF_ERROR;
+        }
+        ngx_memzero(conf->logs->elts, conf->logs->size);
+    }
 
-  for (i = 0; i < prev->logs_definition->nelts; i++) {
-      found = 0;
-      locelement = conf->logs->elts;
-      ngx_log_debug1(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): verify %V", element[i].name);
-      for (j = 0; j < conf->logs->nelts; j++) {
-          curelement = locelement[j].element;
-          ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): %V==%V",
-                         element[i].name, curelement->name);
-          if (element[i].name->len == curelement->name->len
-              && ngx_strncmp(element[i].name->data, curelement->name->data, element[i].name->len) == 0) {
-              found = 1;
-              ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): %V found, off==%d",
-                             element[i].name, locelement[j].off);
-              if (locelement[j].off == NGX_CONF_UNSET) {
-                  locelement[j].off = 0;
-              }
-          }
-      }
-      if (found == 0) {
-          ngx_log_debug1(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): %V not found", element[i].name);
-          locelement = ngx_array_push(conf->logs);
-          ngx_memzero(locelement, sizeof(ngx_http_brokerlog_loc_element_conf_t));
-          locelement->off = 0;
-          locelement->element = element + i;
-      }
-  }
+    for (i = 0; i < prev->logs_definition->nelts; i++) {
+        found = 0;
+        locelement = conf->logs->elts;
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): verify \"%V\"", element[i].name);
+        for (j = 0; j < conf->logs->nelts; j++) {
+            curelement = locelement[j].element;
+            if (element[i].name->len == curelement->name->len
+                && ngx_strncmp(element[i].name->data, curelement->name->data, element[i].name->len) == 0) {
+                found = 1;
+                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): \"%V\" found, off==%d",
+                               element[i].name, locelement[j].off);
+                if (locelement[j].off == NGX_CONF_UNSET) {
+                    locelement[j].off = 0;
+                }
+            }
+        }
+        if (found == 0) {
+            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): \"%V\" not found", element[i].name);
+            locelement = ngx_array_push(conf->logs);
+            ngx_memzero(locelement, sizeof(ngx_http_brokerlog_loc_element_conf_t));
+            locelement->off = 0;
+            locelement->element = element + i;
+        }
+    }
 #if (NGX_DEBUG)
-  locelement = conf->logs->elts;
-  for (i = 0; i < conf->logs->nelts; i++) {
-       ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): %V: off==%d",
-       locelement[i].element->name, locelement[i].off);
-  }
+    locelement = conf->logs->elts;
+    for (i = 0; i < conf->logs->nelts; i++) {
+         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): \"%V\": off==%d",
+         locelement[i].element->name, locelement[i].off);
+    }
 #endif
 
-  ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf() end");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): return OK");
 
-  return NGX_CONF_OK;
+    return NGX_CONF_OK;
 }
 
 /**
@@ -547,7 +550,7 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     if (bkmc == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no \"brokerlog\" main configuration defined");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no \"brokerlog_zmq\" main configuration defined");
         return NGX_CONF_ERROR;
     }
 
@@ -561,109 +564,63 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     found = 0;
     value = cf->args->elts;
 
-  if (bkmc->logs && bkmc->logs != NGX_CONF_UNSET_PTR) {
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): search %V", &value[1]);
-    lecf = bkmc->logs->elts;
-    for (i = 0; i < bkmc->logs->nelts; i++) {
-      if (lecf[i].name->len == value[1].len
-                && ngx_strncmp(lecf[i].name->data, value[1].data, lecf[i].name->len) == 0) {
-        lecf = lecf + i;
-        found = 1;
-        break;
-      }
-    }
-  } else {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): empty definitions");
-    bkmc->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_element_conf_t));
-    if (bkmc->logs == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_endpoint\": error creating space for definitions");
-        return NGX_CONF_ERROR;
-    }
-	ngx_memzero(bkmc->logs->elts, bkmc->logs->size);
-  }
-  if (!found) {
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): create definition %V", &value[1]);
-    lecf = ngx_array_push(bkmc->logs);
+	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): definition \"%V\"", &value[1]);
+    lecf = ngx_http_brokerlog_create_definition(cf, bkmc, &value[1]);
 
     if (NULL == lecf) {
-       ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": error creating definitions");
-       return NGX_CONF_ERROR;
+		return NGX_CONF_ERROR;
+	}
+
+    /* set the location logs to main configuration logs */
+    llcf->logs_definition = (ngx_array_t *) bkmc->logs;
+
+    if (lecf->sset == 1) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": \"%V\" was initializated before", &value[1]);
+        return NGX_CONF_ERROR;
     }
-    ngx_memzero(lecf, sizeof(ngx_http_brokerlog_element_conf_t));
-  }
 
-  /* set the location logs to main configuration logs */
-  llcf->logs_definition = (ngx_array_t *) bkmc->logs;
+	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): loc definition \"%V\"", &value[1]);
+	lelcf = ngx_http_brokerlog_create_location_element(cf, llcf, &value[1]);
 
-  if (lecf->sset == 1) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\" %V was initializated before", &value[1]);
-    return NGX_CONF_ERROR;
-  }
-
-  found = 0;
-
-  if (llcf->logs && llcf->logs != NGX_CONF_UNSET_PTR) {
-    lelcf = llcf->logs->elts;
-    for (i = 0; i < llcf->logs->nelts; i++) {
-      if (lelcf[i].element->name->len == value[1].len
-          && ngx_strncmp(lelcf[i].element->name->data, value[1].data, lelcf[i].element->name->len) == 0) {
-        lelcf = lelcf + i;
-        found = 1;
-        break;
-      }
-    }
-  } else {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): empty location definitions");
-    llcf->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_loc_element_conf_t));
-    if (llcf->logs == NULL) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": error creating location log");
-      return NGX_CONF_ERROR;
-    }
-  }
-
-  if (!found) {
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): create location definition %V", &value[1]);
-    lelcf = ngx_array_push(llcf->logs);
-    if (NULL == lelcf) {
-       ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": error creating location log");
-       return NGX_CONF_ERROR;
-    }
-    ngx_memzero(lelcf, sizeof(ngx_http_brokerlog_loc_element_conf_t));
-  }
+	if (NULL == lelcf) {
+		return NGX_CONF_ERROR;
+	}
 
     /* create ZMQ context structure */
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() create lecf ctx");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): create context");
 
     lecf->ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_brokerlog_ctx_t));
     if (NULL == lecf->ctx) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_server() lecf->ctx == NULL");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": error creating context \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
     lecf->ctx->log = cf->cycle->log;
 
     /* update definition name and cycle log*/
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() create lecf name");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): set definition name");
 
     lecf->name = ngx_palloc(cf->pool, sizeof(ngx_str_t));
     if (lecf->name == NULL) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_server() lecf->name == NULL");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": error setting name \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
     lecf->name->data = ngx_palloc(cf->pool, value[1].len);
     lecf->name->len = value[1].len;
     ngx_memcpy(lecf->name->data, value[1].data, value[1].len);
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() initialize element conf %V", &value[1]);
+
+	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): initialize element \"%V\"", &value[1]);
     lecf->log = cf->cycle->log;
     lecf->off = 0;
 
     /* set the type of protocol TCP|IPC|INPROC */
     kind = value[3].data;
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() kind %V", &value[3]);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): server kind \"%V\"", &value[3]);
 
     endpoint = ngx_pcalloc(cf->pool, sizeof(ngx_brokerlog_server_t));
 
     if (endpoint == NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": error creating endpoint \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
@@ -674,17 +631,17 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     } else if (0 == ngx_strcmp(kind, ZMQ_INPROC_KEY)) {
         endpoint->kind = INPROC;
     } else {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_server() invalid ZMQ connection type: %s", kind);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": invalid ZMQ connection type: %s \"%V\"", kind, &value[1]);
         return NGX_CONF_ERROR;
     }
 
     /* set the number of threads associated with this context */
     iothreads = ngx_atoi(value[4].data, value[4].len);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() iothreads %V", &value[4]);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): iothreads \"%V\"", &value[4]);
 
     if (iothreads == NGX_ERROR || iothreads <= 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_server() invalid I/O threads %d", iothreads);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": invalid I/O threads %d \"%V\"", iothreads, &value[1]);
         return NGX_CONF_ERROR;
     }
 
@@ -693,10 +650,10 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     /* set the queue size associated with this context */
     qlen = ngx_atoi(value[5].data, value[5].len);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() queue len %V", &value[5]);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): queue length \"%V\"", &value[5]);
 
     if (qlen == NGX_ERROR || qlen < 0) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_server() invalid queue size %d", qlen);
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": invalid queue size %d \"%V\"", qlen, &value[1]);
     }
 
     lecf->qlen = qlen;
@@ -709,7 +666,7 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         u.listen = 1;
 
         if(ngx_parse_url(cf->pool, &u) != NGX_OK) {
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_server() invalid server: %s", u.err);
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": invalid server: %s \"%V\"", u.err, &value[1]);
             return NGX_CONF_ERROR;
         }
         endpoint->peer_addr = u.addrs[0];
@@ -741,13 +698,14 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             ngx_memcpy(&connection[zmq_hdlen], u.url.data, u.url.len);
             break;
         default:
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "brokerlog_zmq: set_server() invalid endpoint type");
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": invalid endpoint type \"%V\"", &value[1]);
             return NGX_CONF_ERROR;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() connection %s", connection);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server(): connection %s", connection);
 
     if (NULL == connection) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_server\": error creating connection \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
@@ -761,14 +719,16 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     /* set the server as done */
     lecf->sset = 1;
 
-  lelcf->element = (ngx_http_brokerlog_element_conf_t *) lecf;
-  lelcf->off = 0;
+    /* by default, the configuration for this location is unmuted */
+    lelcf->element = (ngx_http_brokerlog_element_conf_t *) lecf;
+    lelcf->off = 0;
 
-  llcf->off = 0;
+    /* by default, the configuration is unmuted */
+    llcf->off = 0;
 
     ngx_pfree(cf->pool, connection);
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() end");
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_server() return OK \"%V\"", &value[1]);
 
     return NGX_CONF_OK;
 }
@@ -792,30 +752,28 @@ ngx_http_brokerlog_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-  ngx_http_brokerlog_main_conf_t    *bkmc;
+    ngx_http_brokerlog_main_conf_t    *bkmc;
     ngx_http_brokerlog_loc_conf_t     *llcf = conf;
     ngx_http_brokerlog_element_conf_t *lecf;
-  ngx_http_brokerlog_loc_element_conf_t *lelcf;
+    ngx_http_brokerlog_loc_element_conf_t *lelcf;
     ngx_str_t                         *log_format, *value;
     ngx_http_script_compile_t         sc;
     size_t                            i, len, log_len;
     u_char                            *p;
     ngx_uint_t                        found = 0;
-#if (NGX_DEBUG)
     ngx_log_t                         *log = cf->log;
-#endif
 
-  bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_brokerlog_module);
+    bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_brokerlog_module);
 
-  if (cf->cmd_type != NGX_HTTP_MAIN_CONF) {
+    if (cf->cmd_type != NGX_HTTP_MAIN_CONF) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"brokerlog_format\" directive may only used on \"http\" level");
-    return NGX_CONF_ERROR;
-  }
+        return NGX_CONF_ERROR;
+    }
 
-  if (bkmc == NULL) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no \"brokerlog\" main configuration defined");
-    return NGX_CONF_ERROR;
-  }
+    if (bkmc == NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no \"brokerlog\" main configuration defined");
+        return NGX_CONF_ERROR;
+    }
 
     len = 0;
     log_len = 0;
@@ -823,91 +781,42 @@ ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     /* value[0] variable name
      * value[1] definition name
      * value[2] format
-   */
+     */
     value = cf->args->elts;
 
-  if (bkmc->logs && bkmc->logs != NGX_CONF_UNSET_PTR) {
-    lecf = bkmc->logs->elts;
-    for (i = 0; i < bkmc->logs->nelts; i++) {
-      if (lecf[i].name->len == value[1].len
-                && ngx_strncmp(lecf[i].name->data, value[1].data, lecf[i].name->len) == 0) {
-        lecf = lecf + i;
-        found = 1;
-        break;
-      }
-    }
-    if (found == 0) {
-      lecf = ngx_array_push(bkmc->logs);
-    }
+	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format(): definition \"%V\"", &value[1]);
+    lecf = ngx_http_brokerlog_create_definition(cf, bkmc, &value[1]);
+
     if (NULL == lecf) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_format\": error creating definitions");
-      return NGX_CONF_ERROR;
-    }
-  } else {
-    bkmc->logs = ngx_array_create(cf->pool, 1, sizeof(ngx_http_brokerlog_element_conf_t));
-    if (bkmc->logs == NULL) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_format\": error creating definitions");
-      return NGX_CONF_ERROR;
-    }
-    bkmc->logs->nelts = 1;
-    lecf = (ngx_http_brokerlog_element_conf_t *) bkmc->logs->elts;
-    ngx_memzero(lecf, sizeof(ngx_http_brokerlog_element_conf_t));
-  }
+		return NGX_CONF_ERROR;
+	}
 
-  /* set the location logs to main configuration logs */
-  llcf->logs_definition = (ngx_array_t *) bkmc->logs;
+    /* set the location logs to main configuration logs */
+    llcf->logs_definition = (ngx_array_t *) bkmc->logs;
 
-  if (lecf->fset == 1) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_format\" %V was initializated before", &value[1]);
-    return NGX_CONF_ERROR;
-  }
-
-  if (lecf->data_lengths != NULL) {
-    ngx_pfree(cf->pool, lecf->data_lengths);
-    lecf->data_lengths = NULL;
-  }
-  if (lecf->data_values != NULL) {
-    ngx_pfree(cf->pool, lecf->data_values);
-    lecf->data_values = NULL;
-  }
-
-  if (llcf->logs && llcf->logs != NGX_CONF_UNSET_PTR) {
-    found = 0;
-    lelcf = llcf->logs->elts;
-    for (i = 0; i < llcf->logs->nelts; i++) {
-      if (lelcf[i].element->name->len == value[1].len
-          && ngx_strncmp(lelcf[i].element->name->data, value[1].data, lelcf[i].element->name->len) == 0) {
-        lelcf = lelcf + 1;
-        found = 1;
-        break;
-      }
+    if (lecf->fset == 1) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_format\" %V was initializated before", &value[1]);
+        return NGX_CONF_ERROR;
     }
-    if (found == 0) {
-      lelcf = ngx_array_push(llcf->logs);
-    }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format(): loc definition \"%V\"", &value[1]);
+    lelcf = ngx_http_brokerlog_create_location_element(cf, llcf, &value[1]);
+
     if (NULL == lelcf) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_format\": error creating location log");
-      return NGX_CONF_ERROR;
-    }
-  } else {
-    llcf->logs = ngx_array_create(cf->pool, 1, sizeof(ngx_http_brokerlog_loc_element_conf_t));
-    if (llcf->logs == NULL) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_format\": error creating location log");
-      return NGX_CONF_ERROR;
-    }
-    llcf->logs->nelts = 1;
-    lelcf = (ngx_http_brokerlog_loc_element_conf_t *) llcf->logs->elts;
-    ngx_memzero(lelcf, sizeof(ngx_http_brokerlog_loc_element_conf_t));
-  }
+		return NGX_CONF_ERROR;
+	}
 
-
-  if (lecf->data_lengths != NULL && lecf->data_lengths != NGX_CONF_UNSET_PTR) {
-        ngx_array_destroy(lecf->data_lengths);
+	/* this shoulnd get into this */
+    if (lecf->data_lengths != NULL) {
+        ngx_pfree(cf->pool, lecf->data_lengths);
+        lecf->data_lengths = NULL;
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format(): clean data lengths");
     }
-    if (lecf->data_values != NULL && lecf->data_values != NGX_CONF_UNSET_PTR) {
-       ngx_array_destroy(lecf->data_values);
+    if (lecf->data_values != NULL) {
+        ngx_pfree(cf->pool, lecf->data_values);
+        lecf->data_values = NULL;
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format(): clean data values");
     }
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() clean data %V", &value[1]);
 
     /* we support multiline logs format */
 
@@ -928,7 +837,7 @@ ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         p = p + len;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() value: \"%V\"", &value[2]);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format(): value \"%V\"", &value[2]);
 
     /* recompile all together */
     ngx_memzero(&sc, sizeof(ngx_http_script_compile_t));
@@ -940,23 +849,26 @@ ngx_http_brokerlog_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     sc.complete_lengths = 1;
     sc.complete_values = 1;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() compile");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format(): compile");
 
     if (ngx_http_script_compile(&sc) != NGX_OK) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "error compiling brokerlog format");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_format\": error compiling format \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
     /* set the format as done */
     lecf->fset = 1;
 
-  lelcf->element = (ngx_http_brokerlog_element_conf_t *) lecf;
-  lelcf->off = 0;
-  llcf->off = 0;
+	/* by default, this location have all configuration elements unmuted */
+    lelcf->element = (ngx_http_brokerlog_element_conf_t *) lecf;
+    lelcf->off = 0;
+
+	/* by default, this location is unmuted */
+    llcf->off = 0;
 
     ngx_pfree(cf->pool, log_format);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() end %V", &value[1]);
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_format() return OK \"%V\"", &value[1]);
 
     return NGX_CONF_OK;
 }
@@ -983,13 +895,10 @@ ngx_http_brokerlog_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_brokerlog_main_conf_t    *bkmc;
     ngx_http_brokerlog_loc_conf_t     *llcf = conf;
     ngx_http_brokerlog_element_conf_t *lecf;
-  ngx_http_brokerlog_loc_element_conf_t *lelcf;
+    ngx_http_brokerlog_loc_element_conf_t *lelcf;
     ngx_str_t                         *value;
     ngx_http_script_compile_t         sc;
-    ngx_uint_t                        i, found;
-#if (NGX_DEBUG)
     ngx_log_t                         *log = cf->log;
-#endif
 
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_brokerlog_module);
 
@@ -998,95 +907,50 @@ ngx_http_brokerlog_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-  if (bkmc == NULL) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no \"brokerlog\" main configuration defined");
-    return NGX_CONF_ERROR;
-  }
+    if (bkmc == NULL) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no \"brokerlog\" main configuration defined");
+        return NGX_CONF_ERROR;
+    }
 
     /* value[0] variable name
      * value[1] definition name
      * value[2] endpoint
-    */
+     */
 
-  found = 0;
     value = cf->args->elts;
 
-    if (bkmc->logs && bkmc->logs != NGX_CONF_UNSET_PTR) {
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): search %V", &value[1]);
-    lecf = bkmc->logs->elts;
-    for (i = 0; i < bkmc->logs->nelts; i++) {
-      if (lecf[i].name->len == value[1].len
-                && ngx_strncmp(lecf[i].name->data, value[1].data, lecf[i].name->len) == 0) {
-        lecf = lecf + i;
-        found = 1;
-        break;
-      }
+	ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): definition \"%V\"", &value[1]);
+    lecf = ngx_http_brokerlog_create_definition(cf, bkmc, &value[1]);
+
+    if (NULL == lecf) {
+		return NGX_CONF_ERROR;
+	}
+
+    /* set the location logs to main configuration logs */
+    llcf->logs_definition = (ngx_array_t *) bkmc->logs;
+
+    if (lecf->eset == 1) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_endpoint\" %V was initializated before", &value[1]);
+        return NGX_CONF_ERROR;
     }
-  } else {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): empty definitions");
-    bkmc->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_element_conf_t));
-    if (bkmc->logs == NULL) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_endpoint\": error creating space for definitions");
-      return NGX_CONF_ERROR;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): loc definition \"%V\"", &value[1]);
+    lelcf = ngx_http_brokerlog_create_location_element(cf, llcf, &value[1]);
+
+    if (NULL == lelcf) {
+		return NGX_CONF_ERROR;
+	}
+
+    if (lecf->endpoint_lengths != NULL) {
+        ngx_pfree(cf->pool, lecf->endpoint_lengths);
+        lecf->endpoint_lengths = NULL;
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): clean endpoint lengths");
     }
-  }
-
-  if (!found) {
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): create definition %V", &value[1]);
-    lecf = ngx_array_push(bkmc->logs);
-  }
-  if (NULL == lecf) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_endpoint\": error creating location log");
-    return NGX_CONF_ERROR;
-  }
-
-  /* set the location logs to main configuration logs */
-  llcf->logs_definition = (ngx_array_t *) bkmc->logs;
-
-  if (lecf->eset == 1) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_endpoint\" %V was initializated before", &value[1]);
-    return NGX_CONF_ERROR;
-  }
-
-  if (lecf->endpoint_lengths != NULL) {
-    ngx_pfree(cf->pool, lecf->endpoint_lengths);
-    lecf->endpoint_lengths = NULL;
-  }
-  if (lecf->endpoint_values != NULL) {
-    ngx_pfree(cf->pool, lecf->endpoint_values);
-    lecf->endpoint_values = NULL;
-  }
-
-  found = 0;
-
-  if (llcf->logs && llcf->logs != NGX_CONF_UNSET_PTR) {
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): search %V", &value[1]);
-    lelcf = llcf->logs->elts;
-    for (i = 0; i < llcf->logs->nelts; i++) {
-      if (lelcf[i].element->name->len == value[1].len
-          && ngx_strncmp(lelcf[i].element->name->data, value[1].data, lelcf[i].element->name->len) == 0) {
-        lelcf = lelcf + i;
-        found = 1;
-        break;
-      }
+    if (lecf->endpoint_values != NULL) {
+        ngx_pfree(cf->pool, lecf->endpoint_values);
+        lecf->endpoint_values = NULL;
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): clean endpoint values");
     }
-  } else {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): empty location definitions");
-    llcf->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_loc_element_conf_t));
-    if (llcf->logs == NULL) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_endpoint\": error creating location log");
-      return NGX_CONF_ERROR;
-    }
-  }
-
-  if (!found) {
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): create location definition %V", &value[1]);
-    lelcf = ngx_array_push(llcf->logs);
-  }
-  if (NULL == lelcf) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_endpoint\": error creating location log");
-    return NGX_CONF_ERROR;
-  }
 
     /* the endpoint is a string where we can place some nginx environment variables which are compiled
      * each time we process them. here we evaluate this set of data and prepare them to be used */
@@ -1099,21 +963,21 @@ ngx_http_brokerlog_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     sc.complete_lengths = 1;
     sc.complete_values = 1;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint() compile");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint(): compile");
 
     if (ngx_http_script_compile(&sc) != NGX_OK) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "error compiling brokerlog endpoint");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_endpoint\": error compiling format \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
     }
 
     /* mark the endpoint as setted */
     lecf->eset = 1;
 
-  lelcf->element = (ngx_http_brokerlog_element_conf_t *) lecf;
-  lelcf->off = 0;
-  llcf->off = 0;
+    lelcf->element = (ngx_http_brokerlog_element_conf_t *) lecf;
+    lelcf->off = 0;
+    llcf->off = 0;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint() return OK");
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_endpoint() return OK \"%V\"", &value[1]);
 
     return NGX_CONF_OK;
 }
@@ -1121,27 +985,27 @@ ngx_http_brokerlog_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_http_brokerlog_set_off(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-  ngx_http_brokerlog_main_conf_t       *bkmc;
+    ngx_http_brokerlog_main_conf_t       *bkmc;
     ngx_http_brokerlog_loc_conf_t        *llcf = conf;
     ngx_http_brokerlog_element_conf_t    *lecf;
-  ngx_http_brokerlog_loc_element_conf_t *lelcf;
+    ngx_http_brokerlog_loc_element_conf_t *lelcf;
     ngx_str_t                            *value;
     ngx_uint_t                           i, found = 0;
     ngx_log_t                            *log = cf->log;
 
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_brokerlog_module);
 
-  if (NULL == bkmc) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no \"brokerlog\" main configuration defined");
-    return NGX_CONF_ERROR;
-  }
+    if (NULL == bkmc) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "no \"brokerlog\" main configuration defined");
+        return NGX_CONF_ERROR;
+    }
 
-  if (NULL == bkmc->logs || NGX_CONF_UNSET_PTR == bkmc->logs) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog\" doesn't have any log defined");
-    return NGX_CONF_ERROR;
-  }
+    if (NULL == bkmc->logs || NGX_CONF_UNSET_PTR == bkmc->logs) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog\" doesn't have any log defined");
+        return NGX_CONF_ERROR;
+    }
 
-  llcf->logs_definition = (ngx_array_t *) bkmc->logs;
+    llcf->logs_definition = (ngx_array_t *) bkmc->logs;
 
     /* value[0] variable name
      * value[1] definition name
@@ -1155,64 +1019,39 @@ ngx_http_brokerlog_set_off(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_OK;
     }
 
-  /* let's verify if we are muting an existent definition */
-  lecf = bkmc->logs->elts;
-  for (i = 0; i < bkmc->logs->nelts; i++) {
-    if (lecf[i].name->len == value[1].len
-       && ngx_strncmp(lecf[i].name->data, value[1].data, lecf[i].name->len) == 0) {
-        lecf = lecf + i;
-        found = 1;
-        break;
+    /* let's verify if we are muting an existent definition */
+    lecf = bkmc->logs->elts;
+    for (i = 0; i < bkmc->logs->nelts; i++) {
+        if (lecf[i].name->len == value[1].len
+            && ngx_strncmp(lecf[i].name->data, value[1].data, lecf[i].name->len) == 0) {
+            lecf = lecf + i;
+            found = 1;
+            break;
+        }
     }
-  }
 
-  if (!found) {
-    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_off\": %V definition not found", &value[1]);
-    return NGX_CONF_ERROR;
-  }
-
-  llcf->off = 0;
-  found = 0;
-
-  if (llcf->logs && llcf->logs != NGX_CONF_UNSET_PTR) {
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): search: %V in %d elements",
-             &value[1], llcf->logs->nelts);
-    lelcf = llcf->logs->elts;
-    for (i = 0; i < llcf->logs->nelts; i++) {
-      ngx_log_debug2(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): search: %V, off==%d",
-                     lelcf[i].element->name, lelcf[i].off);
-      if (lelcf[i].element->name->len == value[1].len
-          && ngx_strncmp(lelcf[i].element->name->data, value[1].data, lelcf[i].element->name->len) == 0) {
-        lelcf = lecf + i;
-        found = 1;
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): found %V", &value[1]);
-      }
+    if (!found) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_off\": \"%V\" definition not found", &value[1]);
+        return NGX_CONF_ERROR;
     }
-    if (found == 0) {
-      lelcf = ngx_array_push(llcf->logs);
-    }
+
+    llcf->off = 0;
+    found = 0;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): loc definition \"%V\"", &value[1]);
+    lelcf = ngx_http_brokerlog_create_location_element(cf, llcf, &value[1]);
+
     if (NULL == lelcf) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_off\": error creating location log");
-      return NGX_CONF_ERROR;
-    }
+		return NGX_CONF_ERROR;
+	}
 
-  } else {
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): create logs reference");
-    llcf->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_loc_element_conf_t));
-    if (NULL == llcf->logs) {
-      ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_off\": error creating location log");
-      return NGX_CONF_ERROR;
-    }
-    lelcf = ngx_array_push(llcf->logs);
-  }
+    lelcf->off = 1;
+    lelcf->element = (ngx_http_brokerlog_element_conf_t *) lecf;
 
-  lelcf->off = 1;
-  lelcf->element = (ngx_http_brokerlog_element_conf_t *) lecf;
-
-  ngx_log_debug3(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): %V, off=%d (%V)",
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): \"%V\", off=%d (\"%V\")",
     lelcf->element->name, lelcf->off, &value[1]);
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): return OK");
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: set_off(): return OK \"%V\"", &value[1]);
 
     return NGX_CONF_OK;
 }
@@ -1231,21 +1070,19 @@ ngx_http_brokerlog_postconf(ngx_conf_t *cf)
 {
     ngx_http_core_main_conf_t            *cmcf;
     ngx_http_handler_pt                    *h;
-#if (NGX_DEBUG)
     ngx_log_t                            *log = cf->cycle->log;
-#endif
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
     h = ngx_array_push(&cmcf->phases[NGX_HTTP_LOG_PHASE].handlers);
     if (h == NULL) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "NGINX ZMQ MODULE: postconf() ERROR");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: postconf(): error pushing handler");
         return NGX_ERROR;
     }
 
     *h = ngx_http_brokerlog_handler;
 
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "NGINX ZMQ MODULE: postconf() OK");
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: postconf(): return OK");
 
     return NGX_OK;
 }
@@ -1263,39 +1100,93 @@ static void
 ngx_http_brokerlog_exitmaster(ngx_cycle_t *cycle)
 {
 }
-/*
-static void
-ngx_http_brokerlog_element_conf_free(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *element)
+static ngx_http_brokerlog_element_conf_t *
+ngx_http_brokerlog_create_definition(ngx_conf_t *cf, ngx_http_brokerlog_main_conf_t *bkmc, ngx_str_t *name)
 {
-  if (NULL != element->server) {
-    if (NULL != element->server->connection) {
-      ngx_pfree(pool, element->server->connection);
+    ngx_http_brokerlog_element_conf_t *lecf;
+	ngx_log_t                         *log;
+    ngx_uint_t                         i, found;
+
+	log = cf->log;
+	found = 0;
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: create_definition(): \"%V\"", name);
+
+    if (bkmc->logs && bkmc->logs != NGX_CONF_UNSET_PTR) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: create_definition(): search \"%V\"", name);
+        lecf = bkmc->logs->elts;
+        for (i = 0; i < bkmc->logs->nelts; i++) {
+            if (lecf[i].name->len == name->len
+			    && ngx_strncmp(lecf[i].name->data, name->data, lecf[i].name->len) == 0) {
+                lecf = lecf + i;
+                found = 1;
+                break;
+            }
+        }
+    } else {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: create_definition(): empty definitions");
+        bkmc->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_element_conf_t));
+        if (bkmc->logs == NULL) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_zmq\": error creating space for definitions \"%V\"", name);
+            return NULL;
+        }
+	    ngx_memzero(bkmc->logs->elts, bkmc->logs->size);
     }
-    ngx_pfree(pool, element->server);
-  }
+    if (!found) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: create_definition(): create definition \"%V\"", name);
+        lecf = ngx_array_push(bkmc->logs);
 
-  if (NULL != element->data_lengths) {
-    ngx_pfree(pool, element->data_lengths);
-  }
+        if (NULL == lecf) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_zmq\": error creating definitions \"%V\"", name);
+            return NULL;
+        }
+        ngx_memzero(lecf, sizeof(ngx_http_brokerlog_element_conf_t));
+    }
 
-  if (NULL != element->data_values) {
-     ngx_pfree(pool, element->data_values);
-  }
+    return lecf;
+}
 
-  if (NULL != element->endpoint_lengths) {
-    ngx_pfree(pool, element->endpoint_lengths);
-  }
+static ngx_http_brokerlog_loc_element_conf_t *
+ngx_http_brokerlog_create_location_element(ngx_conf_t *cf, ngx_http_brokerlog_loc_conf_t *llcf, ngx_str_t *name)
+{
+    ngx_http_brokerlog_loc_element_conf_t *lelcf;
+    ngx_log_t  *log;
+    ngx_uint_t  i, found;
 
-  if (NULL != element->endpoint_values) {
-    ngx_pfree(pool, element->endpoint_values);
-  }
+	log = cf->log;
+	found = 0;
 
-  if (NULL != element->ctx) {
-    ngx_pfree(pool, element->ctx);
-  }
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: create_location_element(): \"%V\"", name);
 
-  if (NULL != element->name) {
-    ngx_pfree(pool, element->name);
-  }
-  ngx_memzero(element, sizeof(element));
-}*/
+    if (llcf->logs && llcf->logs != NGX_CONF_UNSET_PTR) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: create_location_element(): search \"%V\"", name);
+        lelcf = llcf->logs->elts;
+        for (i = 0; i < llcf->logs->nelts; i++) {
+            if (lelcf[i].element->name->len == name->len
+                && ngx_strncmp(lelcf[i].element->name->data, name->data, lelcf[i].element->name->len) == 0) {
+                lelcf = lelcf + i;
+                found = 1;
+                break;
+            }
+        }
+    } else {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: create_location_element(): empty location definitions");
+        llcf->logs = ngx_array_create(cf->pool, 4, sizeof(ngx_http_brokerlog_loc_element_conf_t));
+        if (llcf->logs == NULL) {
+           ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_zmq\": error creating location log \"%V\"", name);
+           return NULL;
+        }
+    }
+
+    if (!found) {
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: create_location_element(): create location definition \"%V\"", name);
+        lelcf = ngx_array_push(llcf->logs);
+        if (NULL == lelcf) {
+            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"brokerlog_zmq\": error creating location log \"%V\"", name);
+            return NULL;
+        }
+        ngx_memzero(lelcf, sizeof(ngx_http_brokerlog_loc_element_conf_t));
+    }
+
+    return lelcf;
+}
