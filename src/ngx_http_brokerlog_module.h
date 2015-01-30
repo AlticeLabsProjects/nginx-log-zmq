@@ -69,7 +69,7 @@ typedef struct {
 } ngx_http_brokerlog_ctx_t;
 
 /**
- * @brief location log configuration
+ * @brief element log configuration
  *
  * @note nginx has a ngx flag type, we should change sset/fset/eset to that type
  */
@@ -92,6 +92,14 @@ typedef struct {
 } ngx_http_brokerlog_element_conf_t;
 
 /**
+ * @brief location log configuration
+ */
+typedef struct {
+    ngx_uint_t                         off;      /**< Is this element deactivated? */
+    ngx_http_brokerlog_element_conf_t *element;  /**< Pointer to the log definition */
+} ngx_http_brokerlog_loc_element_conf_t;
+
+/**
  * @brief location configuration
  *
  * @note nginx as ngx flag type, we should change off to that type
@@ -100,6 +108,7 @@ typedef struct {
     ngx_array_t              *logs;              /**< Array of logs to handle in this location */
     ngx_uint_t                off;               /**< Should we off all the logs in this location? */
     ngx_log_t                *log;               /**< Pointer to the logger */
+    ngx_array_t				 *logs_definition;   /**< Pointer to the main conf logs definition */
 } ngx_http_brokerlog_loc_conf_t;
 
 /**
@@ -110,6 +119,7 @@ typedef struct {
 typedef struct {
     ngx_cycle_t             *cycle;              /**< Pointer to the current nginx cycle */
     ngx_log_t               *log;                /**< Pointer to the logger */
+    ngx_array_t				*logs;               /**< Array of logs definitions */
 } ngx_http_brokerlog_main_conf_t;
 
 #include "ngx_http_brokerlog_zmq.h"
