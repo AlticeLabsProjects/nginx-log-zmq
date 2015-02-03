@@ -298,7 +298,7 @@ ngx_http_brokerlog_handler(ngx_http_request_t *r)
 
         ngx_memcpy(zmq_msg_data(&query), broker_data.data, broker_data.len);
 
-        if (zmq_msg_send(clecf->ctx->zmq_socket, &query, 0) == 0) {
+        if (zmq_msg_send(&query, clecf->ctx->zmq_socket, 0) >= 0) {
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): message sent: %V", &broker_data);
         } else {
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, log, 0, "brokerlog_zmq: handler(): message not sent: %V", &broker_data);
