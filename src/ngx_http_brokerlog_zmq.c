@@ -110,7 +110,7 @@ zmq_term_ctx(ngx_http_brokerlog_ctx_t *ctx)
 
     /* term and nullify context zmq_context */
     if (ctx->zmq_context) {
-        zmq_term(ctx->zmq_context);
+        zmq_ctx_destroy(ctx->zmq_context);
         ctx->zmq_context = NULL;
     }
 
@@ -178,11 +178,11 @@ zmq_create_socket(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *cf)
         return -1;
     }
 
-    /* set socket option ZMQ_HWM */
-    rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_HWM, &qlen, sizeof(qlen));
+    /* set socket option ZMQ_SNDHWM */
+    rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_SNDHWM, &qlen, sizeof(qlen));
     if ( rc != 0) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_HWM");
-        ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_HWM");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_SNDHWM");
+        ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_SNDHWM");
         return -1;
     }
 
