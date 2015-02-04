@@ -47,18 +47,26 @@ Synopsis
 
 ```
 	http {
+		# simple message to an IPC endpoint with 4 threads and 1000 queue elements
+
+		brokerlog_server main "/tmp/main.ipc" ipc 4 1000;
+		brokerlog_endpoint  main "/topic/";
+
+		brokerlog_format main '{"remote_addr":"$remote_addr"}'
+
+		# send messages to a subscriber listening at 127.0.0.1:5556
+
+		brokerlog_server secondary 127.0.0.1:5556 tcp 4 1000;
+
+		# set secondary endpoint
+		brokerlog_endpoint secondary "/endpoint/";
+
+		# set format using multiline
+		brokerlog_format secondary '{"request_uri":"$request_uri",'
+								   '{"status":"$status"}';
+
 
 		server {
-			# simple message to an IPC endpoint with 4 threads and 1000 queue elements
-
-			brokerlog_server main "/tmp/main.ipc" ipc 4 1000;
-			brokerlog_endpoint  main "/topic/";
-
-			brokerlog_format main '{"remote_addr":"$remote_addr"}'
-
-			# send messages to a subscriber listening at 127.0.0.1:5556
-
-			brokerlog_server secondary 127.0.0.1:5556 tcp 4 1000;
 
 			location /status {
 				# mute all messages from brokerlog for this location
@@ -67,17 +75,9 @@ Synopsis
 			}
 
 			location /endpoint {
-
 				# mute main messages from brokerlog for this location
+
 				brokerlog_off main;
-
-				# set secondary endpoint for this location
-				brokerlog_endpoint secondary "/endpoint/";
-
-				# set format using multiline
-
-				brokerlog_format secondary '{"request_uri":"$request_uri",'
-										   '{"status":"$status"}';
 			}
 		}
 	}
@@ -92,7 +92,7 @@ brokerlog_server
 
 **default:** no
 
-**context:** server, location
+**context:** http
 
 Configures a server (PUB/SUB subscriber) to connect to.
 
@@ -119,7 +119,7 @@ brokerlog_endpoint
 
 **default:** no
 
-**context:** server, location
+**context:** http
 
 Configures the topic for the ZeroMQ messages.
 
@@ -130,7 +130,7 @@ Configures the topic for the ZeroMQ messages.
 Example:
 
 ```
-server {
+http {
 	brokerlog_server main "/tmp/example.ipc" 4 1000;
 
 	# send a message for for an topic based on response status
@@ -147,7 +147,7 @@ brokerlog_format
 
 **default:** no
 
-**context:** server, location
+**context:** http
 
 Configures the ZeroMQ message format.
 
@@ -156,7 +156,7 @@ Configures the ZeroMQ message format.
 **format** &lt;format&gt; - the format for the messages. This defines the actual messages sent to the PUB/SUB subscriber. It follows the sames rules as the standard `log_format` directive. It is possible to use nginx variables here, and also to break it over multiple lines.
 
 ```
-server {
+http {
 	brokerlog_format main '{"line1": value,'
                           '{"line2": value}';
 }
@@ -171,7 +171,7 @@ brokerlog_off
 
 **default:** no
 
-**context:** server, location
+**context:** location
 
 Turn off ZeroMQ logging in the current context.
 
