@@ -1,6 +1,6 @@
 language: c
 compiler:
-	- gcc
+  - gcc
 
 env:
   - VER_NGINX=1.6.2
