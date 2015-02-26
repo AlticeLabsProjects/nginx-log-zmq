@@ -1,5 +1,6 @@
-language: perl
-perl: 5.20
+language: c
+compiler:
+	- gcc
 
 env:
   - VER_NGINX=1.6.2
@@ -14,9 +15,5 @@ install:
 
   - cd "nginx-${VER_NGINX}"
   - ./configure --add-module=../../
-  - sudo make install
-  - export PATH=$PATH:/usr/local/nginx/sbin
 
-  - cpanm -v --no-test Test::Nginx
-
-script: cd ${TRAVIS_BUILD_DIR} && prove
+script: make
