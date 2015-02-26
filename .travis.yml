@@ -1,0 +1,22 @@
+language: perl
+perl: 5.20
+
+env:
+  - VER_NGINX=1.6.2
+
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install libzmq-dev
+
+install:
+  - mkdir ./vendor && cd ./vendor
+  - wget "http://nginx.org/download/nginx-${VER_NGINX}.tar.gz" && tar -xf "nginx-${VER_NGINX}.tar.gz"
+
+  - cd "nginx-${VER_NGINX}"
+  - ./configure --add-module=../../
+  - sudo make install
+  - export PATH=$PATH:/usr/local/nginx/sbin
+
+  - cpanm -v --no-test Test::Nginx
+
+script: cd ${TRAVIS_BUILD_DIR} && prove
