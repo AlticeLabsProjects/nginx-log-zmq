@@ -9,6 +9,8 @@ It's asynchronous and only requires a small library.
 
 _This module is not distributed with the nginx source._ See the [installation instructions](#installation).
 
+[![Build Status](https://travis-ci.org/sapo/nginx-log-zmq.svg?branch=master)](https://travis-ci.org/sapo/nginx-log-zmq)
+
 Table of Contents
 =================
 
