@@ -147,7 +147,7 @@ zmq_create_socket(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *cf)
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() to %s", connection);
 
     /* override the default qlen if cf as any */
-    if (cf->qlen != qlen) {
+    if ((uint64_t) cf->qlen != qlen) {
         qlen = (uint64_t) cf->qlen;
     }
 
