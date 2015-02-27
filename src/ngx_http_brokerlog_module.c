@@ -442,10 +442,6 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf()");
 
-    if (NGX_CONF_UNSET == conf->off) {
-        conf->off = 0;
-    }
-
     if (NULL == conf->log) {
         conf->log = prev->log;
     }
@@ -477,9 +473,6 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
                 found = 1;
                 ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): \"%V\" found, off==%d",
                                element[i].name, locelement[j].off);
-                if (locelement[j].off == NGX_CONF_UNSET) {
-                    locelement[j].off = 0;
-                }
             }
         }
         if (found == 0) {
