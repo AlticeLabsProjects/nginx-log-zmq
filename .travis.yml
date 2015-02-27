@@ -4,10 +4,12 @@ compiler:
 
 env:
   - VER_NGINX=1.6.2
+  - LIB_ZMQ=libzmq3 libzmq3-dev
+  - LIB_ZMQ=libzmq libzmq-dev
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y libzmq3 libzmq-dev
+  - sudo apt-get install -y ${LIB_ZMQ}
 
 install:
   - mkdir ./vendor && cd ./vendor
