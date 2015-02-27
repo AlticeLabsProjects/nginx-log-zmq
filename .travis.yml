@@ -7,8 +7,7 @@ env:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get autoremove
-  - sudo apt-get install libzmq3 libzmq-dev
+  - sudo apt-get install -y libzmq3 libzmq-dev
 
 install:
   - mkdir ./vendor && cd ./vendor
