@@ -1086,7 +1086,7 @@ ngx_http_brokerlog_exitmaster(ngx_cycle_t *cycle)
 static ngx_http_brokerlog_element_conf_t *
 ngx_http_brokerlog_create_definition(ngx_conf_t *cf, ngx_http_brokerlog_main_conf_t *bkmc, ngx_str_t *name)
 {
-    ngx_http_brokerlog_element_conf_t *lecf;
+    ngx_http_brokerlog_element_conf_t *lecf = NULL;
     ngx_uint_t                         i, found;
 
     found = 0;
@@ -1130,8 +1130,8 @@ ngx_http_brokerlog_create_definition(ngx_conf_t *cf, ngx_http_brokerlog_main_con
 static ngx_http_brokerlog_loc_element_conf_t *
 ngx_http_brokerlog_create_location_element(ngx_conf_t *cf, ngx_http_brokerlog_loc_conf_t *llcf, ngx_str_t *name)
 {
-    ngx_http_brokerlog_loc_element_conf_t *lelcf;
-    ngx_uint_t  i, found;
+    ngx_http_brokerlog_loc_element_conf_t *lelcf = NULL;
+    ngx_uint_t                             i, found;
 
     found = 0;
 
