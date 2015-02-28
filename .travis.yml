@@ -1,6 +1,7 @@
 language: c
 compiler:
   - gcc
+  - clang
 
 env:
   - VER_NGINX=1.6.2
@@ -14,6 +15,6 @@ install:
   - wget "http://nginx.org/download/nginx-${VER_NGINX}.tar.gz" && tar -xf "nginx-${VER_NGINX}.tar.gz"
 
   - cd "nginx-${VER_NGINX}"
-  - ./configure --add-module=../../
+  - ./configure --add-module=../..
 
 script: make
