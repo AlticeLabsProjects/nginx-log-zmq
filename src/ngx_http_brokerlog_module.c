@@ -450,7 +450,14 @@ ngx_http_brokerlog_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->logs_definition = (ngx_array_t *) prev->logs_definition;
     }
 
-    element = (ngx_http_brokerlog_element_conf_t *) prev->logs_definition->elts;
+    if (prev->logs_definition && NGX_CONF_UNSET_PTR != prev->logs_definition) {
+        element = (ngx_http_brokerlog_element_conf_t *) prev->logs_definition->elts;
+    } else {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): empty configuration");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): return OK");
+
+        return NGX_CONF_OK;
+    }
 
     if (NULL == conf->logs || NGX_CONF_UNSET_PTR == conf->logs) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0, "brokerlog_zmq: merge_loc_conf(): no log reference");
