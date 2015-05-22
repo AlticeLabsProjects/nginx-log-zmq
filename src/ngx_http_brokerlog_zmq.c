@@ -141,15 +141,9 @@ zmq_create_socket(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *cf)
 
     char *connection;
 
-    /* create a simple char * to the connection name */
-    connection = ngx_pcalloc(pool, cf->server->connection->len + 1);
-    ngx_memcpy(connection, cf->server->connection->data, cf->server->connection->len);
-
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() to %s", connection);
-
     /* verify if we have a context created */
     if (NULL == cf->ctx->zmq_context) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() no context to create a socket");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() context is NULL");
         return -1;
     }
 
@@ -166,6 +160,14 @@ zmq_create_socket(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *cf)
         cf->ctx->screated = 1;
     }
 
+    /* set socket option ZMQ_SNDHWM (Must be done before ZMQ_LINGER or it fails, why?) */
+    rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_SNDHWM, &qlen, sizeof(qlen));
+    if (rc != 0) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_SNDHWM");
+        ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ error setting option ZMQ_SNDHWM: %s", strerror(errno));
+        return -1;
+    }
+
     /* set socket option ZMQ_LINGER */
     rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_LINGER, &linger, sizeof(linger));
     if (rc != 0) {
@@ -174,25 +176,22 @@ zmq_create_socket(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *cf)
         return -1;
     }
 
+    /* create a simple char * to the connection name */
+    connection = ngx_pcalloc(pool, cf->server->connection->len + 1);
+    ngx_memcpy(connection, cf->server->connection->data, cf->server->connection->len);
+
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() connect to %s", connection);
+
     /* open zmq connection to */
     rc = zmq_connect(cf->ctx->zmq_socket, connection);
     if (rc != 0) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error connecting");
         ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ error connecting: %s", strerror(errno));
+        ngx_pfree(pool, connection);
         return -1;
     }
 
-    /* set socket option ZMQ_SNDHWM */
-    rc = zmq_setsockopt(cf->ctx->zmq_socket, ZMQ_SNDHWM, &qlen, sizeof(qlen));
-    if (rc != 0) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() error setting ZMQ_SNDHWM");
-        ngx_log_error(NGX_LOG_ERR, cf->ctx->log, 0, "ZMQ error setting option ZMQ_SNDHWM: %s", strerror(errno));
-        return -1;
-    }
-
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() end");
-
-    /* please, clean all your temporary variables */
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->ctx->log, 0, "ZMQ: zmq_create_socket() connected");
     ngx_pfree(pool, connection);
 
     /* if all was OK, we should return 0 */
