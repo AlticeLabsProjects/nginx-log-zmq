@@ -541,7 +541,7 @@ ngx_http_log_zmq_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_zmq_module);
 
     if (cf->cmd_type != NGX_HTTP_MAIN_CONF) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"log_zmq_server\" directive may only used on \"http\" level");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"log_zmq_server\" directive can only used in \"http\" context");
         return NGX_CONF_ERROR;
     }
 
@@ -759,7 +759,7 @@ ngx_http_log_zmq_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_zmq_module);
 
     if (cf->cmd_type != NGX_HTTP_MAIN_CONF) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"log_zmq_format\" directive may only used on \"http\" level");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"log_zmq_format\" directive can only be used in \"http\" context");
         return NGX_CONF_ERROR;
     }
 
@@ -895,7 +895,7 @@ ngx_http_log_zmq_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_zmq_module);
 
     if (cf->cmd_type != NGX_HTTP_MAIN_CONF) {
-        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"log_zmq_endpoint\" directive may only used on \"http\" level");
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "the \"log_zmq_endpoint\" directive can only used in \"http\" context");
         return NGX_CONF_ERROR;
     }
 
