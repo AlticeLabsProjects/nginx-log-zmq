@@ -4,7 +4,7 @@
  *****************************************************************************/
 
 /**
- * @file ngx_http_brokerlog_zmq.c
+ * @file ngx_http_log_zmq.c
  * @author Dani Bento <dani@telecom.pt>
  * @date 1 March 2014
  * @brief Brokerlog ZMQ
@@ -20,7 +20,7 @@
 
 #include <zmq.h>
 
-#include "ngx_http_brokerlog_zmq.h"
+#include "ngx_http_log_zmq.h"
 
 /**
  * @brief initialize ZMQ context
@@ -28,13 +28,13 @@
  * Each location is owner of a ZMQ context. We should see this effected
  * reflected on the number of threads created by each nginx process.
  *
- * @param ctx A ngx_http_brokerlog_ctx_t pointer representing the actual
+ * @param ctx A ngx_http_log_zmq_ctx_t pointer representing the actual
  *              location context
  * @return An int representing the OK (0) or error status
  * @note We should redefine this to ngx_int_t with NGX_OK | NGX_ERROR
  */
 int
-zmq_init_ctx(ngx_http_brokerlog_ctx_t *ctx)
+zmq_init_ctx(ngx_http_log_zmq_ctx_t *ctx)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ctx->log, 0, "ZMQ: zmq_init_ctx()");
     /* each location has it's own context, we need to verify if this is the best
@@ -56,12 +56,12 @@ zmq_init_ctx(ngx_http_brokerlog_ctx_t *ctx)
  * Read the actual configuration, verify if we dont have yet a context and
  * initiate it.
  *
- * @param cf A ngx_http_brokerlog_element_conf_t pointer to the location configuration
+ * @param cf A ngx_http_log_zmq_element_conf_t pointer to the location configuration
  * @return An int representing the OK (0) or error status
  * @note We should redefine this to ngx_int_t with NGX_OK | NGX_ERROR
  */
 int
-zmq_create_ctx(ngx_http_brokerlog_element_conf_t *cf)
+zmq_create_ctx(ngx_http_log_zmq_element_conf_t *cf)
 {
     int  rc = 0;
 
@@ -96,12 +96,12 @@ zmq_create_ctx(ngx_http_brokerlog_element_conf_t *cf)
  * We should close all sockets and term the ZMQ context before we totaly exit
  * nginx.
  *
- * @param ctx A ngx_http_brokerlog_ctx_t pointer to the actual module context
+ * @param ctx A ngx_http_log_zmq_ctx_t pointer to the actual module context
  * @return Nothing
  * @note Should we free the context itself here?
  */
 void
-zmq_term_ctx(ngx_http_brokerlog_ctx_t *ctx)
+zmq_term_ctx(ngx_http_log_zmq_ctx_t *ctx)
 {
     /* close and nullify context zmq_socket */
     if (ctx->zmq_socket) {
@@ -128,13 +128,13 @@ zmq_term_ctx(ngx_http_brokerlog_ctx_t *ctx)
  * Verify if it not exists and create a new socket to be available to write
  * messages.
  *
- * @param cf A ngx_http_brokerlog_element_conf_t pointer to the location configuration
+ * @param cf A ngx_http_log_zmq_element_conf_t pointer to the location configuration
  * @return An int representing the OK (0) or error status
  * @note We should redefine this to ngx_int_t with NGX_OK | NGX_ERROR
  * @warning It's important to look at here and define one socket per worker
  */
 int
-zmq_create_socket(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *cf)
+zmq_create_socket(ngx_pool_t *pool, ngx_http_log_zmq_element_conf_t *cf)
 {
     int linger = ZMQ_NGINX_LINGER, rc = 0;
     int qlen = cf->qlen != ZMQ_NGINX_QUEUE_LENGTH ? cf->qlen : ZMQ_NGINX_QUEUE_LENGTH;
@@ -210,8 +210,8 @@ zmq_create_socket(ngx_pool_t *pool, ngx_http_brokerlog_element_conf_t *cf)
  * @return An ngx_int_t with NGX_OK | NGX_ERROR
  */
 ngx_int_t
-brokerlog_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, ngx_str_t *output) {
-    /* the final message sent to broker is composed by endpoint+data
+log_zmq_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, ngx_str_t *output) {
+    /* the final message sent to zmq is composed by endpoint+data
      * eg: endpoint = /stratus/, data = {'num':1}
      * final message /stratus/{'num':1}
      */

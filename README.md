@@ -18,10 +18,10 @@ Table of Contents
 * [Description](#description)
 * [Synopsis](#synopsis)
 * [Directives](#directives)
-	* [brokerlog_server](#brokerlog_server)
-	* [brokerlog_endpoint](#brokerlog_endpoint)
-	* [brokerlog_format](#brokerlog_format)
-	* [brokerlog_off](#brokerlog_off)
+	* [log_zmq_server](#log_zmq_server)
+	* [log_zmq_endpoint](#log_zmq_endpoint)
+	* [log_zmq_format](#log_zmq_format)
+	* [log_zmq_off](#log_zmq_off)
 * [Installation](#installation)
 * [Compatibility](#compatibility)
 * [Report Bugs](#report-bugs)
@@ -51,35 +51,35 @@ Synopsis
 	http {
 		# simple message to an IPC endpoint with 4 threads and 1000 queue elements
 
-		brokerlog_server main "/tmp/main.ipc" ipc 4 1000;
-		brokerlog_endpoint  main "/topic/";
+		log_zmq_server main "/tmp/main.ipc" ipc 4 1000;
+		log_zmq_endpoint  main "/topic/";
 
-		brokerlog_format main '{"remote_addr":"$remote_addr"}'
+		log_zmq_format main '{"remote_addr":"$remote_addr"}'
 
 		# send messages to a subscriber listening at 127.0.0.1:5556
 
-		brokerlog_server secondary 127.0.0.1:5556 tcp 4 1000;
+		log_zmq_server secondary 127.0.0.1:5556 tcp 4 1000;
 
 		# set secondary endpoint
-		brokerlog_endpoint secondary "/endpoint/";
+		log_zmq_endpoint secondary "/endpoint/";
 
 		# set format using multiline
-		brokerlog_format secondary '{"request_uri":"$request_uri",'
+		log_zmq_format secondary '{"request_uri":"$request_uri",'
 								   '{"status":"$status"}';
 
 
 		server {
 
 			location /status {
-				# mute all messages from brokerlog for this location
+				# mute all messages from log_zmq for this location
 
-				brokerlog_off all;
+				log_zmq_off all;
 			}
 
 			location /endpoint {
-				# mute main messages from brokerlog for this location
+				# mute main messages from log_zmq for this location
 
-				brokerlog_off main;
+				log_zmq_off main;
 			}
 		}
 	}
@@ -88,9 +88,9 @@ Synopsis
 Directives
 ==========
 
-brokerlog_server
+log_zmq_server
 ----------------
-**syntax:** *brokerlog_server &lt;definition_name&gt; &lt;address&gt; &lt;ipc|tcp&gt; &lt;threads&gt; &lt;queue size&gt;*
+**syntax:** *log_zmq_server &lt;definition_name&gt; &lt;address&gt; &lt;ipc|tcp&gt; &lt;threads&gt; &lt;queue size&gt;*
 
 **default:** no
 
@@ -114,10 +114,10 @@ protocol, you should specify the `<ipaddress>` and `<port>` where your ZeroMQ su
 
 [Back to TOC](#table-of-contents)
 
-brokerlog_endpoint
+log_zmq_endpoint
 ------------------
 
-**syntax:** *brokerlog_endpoint &lt;definition_name&gt; "&lt;topic&gt;"*
+**syntax:** *log_zmq_endpoint &lt;definition_name&gt; "&lt;topic&gt;"*
 
 **default:** no
 
@@ -133,19 +133,19 @@ Example:
 
 ```
 http {
-	brokerlog_server main "/tmp/example.ipc" 4 1000;
+	log_zmq_server main "/tmp/example.ipc" 4 1000;
 
 	# send a message for for an topic based on response status
-	brokerlog_endpoint main "/remote/$status";
+	log_zmq_endpoint main "/remote/$status";
 }
 ```
 
 [Back to TOC](#table-of-contents)
 
-brokerlog_format
+log_zmq_format
 ----------------
 
-**syntax:** *brokerlog_format &lt;definition_name&gt; "&lt;format&gt;"*
+**syntax:** *log_zmq_format &lt;definition_name&gt; "&lt;format&gt;"*
 
 **default:** no
 
@@ -159,17 +159,17 @@ Configures the ZeroMQ message format.
 
 ```
 http {
-	brokerlog_format main '{"line1": value,'
+	log_zmq_format main '{"line1": value,'
                           '{"line2": value}';
 }
 ```
 
 [Back to TOC](#table-of-contents)
 
-brokerlog_off
+log_zmq_off
 -------------
 
-**syntax:** *brokerlog_off &lt;definition_name&gt;|all*
+**syntax:** *log_zmq_off &lt;definition_name&gt;|all*
 
 **default:** no
 
