@@ -96,12 +96,12 @@ static ngx_command_t  ngx_http_log_zmq_commands[] = {
 };
 
 static ngx_http_module_t  ngx_http_log_zmq_module_ctx = {
-    NULL,                                  /* preconfiguration */
+    NULL,                                /* preconfiguration */
     ngx_http_log_zmq_postconf,           /* postconfiguration */
     ngx_http_log_zmq_create_main_conf,   /* create main configuration */
     ngx_http_log_zmq_init_main_conf,     /* init main configuration */
-    NULL,                                  /* create server configuration */
-    NULL,                                  /* merge server configuration */
+    NULL,                                /* create server configuration */
+    NULL,                                /* merge server configuration */
     ngx_http_log_zmq_create_loc_conf,    /* create location configuration */
     ngx_http_log_zmq_merge_loc_conf      /* merge location configuration */
 };
@@ -112,13 +112,13 @@ ngx_module_t  ngx_http_log_zmq_module = {
     NGX_MODULE_V1,
     &ngx_http_log_zmq_module_ctx,        /* module context */
     ngx_http_log_zmq_commands,           /* module directives */
-    NGX_HTTP_MODULE,                       /* module type */
-    NULL,                                  /* init master */
-    NULL,                                  /* init module */
-    NULL,                                  /* init process */
-    NULL,                                  /* init thread */
-    NULL,                                  /* exit thread */
-    NULL,                                  /* exit process */
+    NGX_HTTP_MODULE,                     /* module type */
+    NULL,                                /* init master */
+    NULL,                                /* init module */
+    NULL,                                /* init process */
+    NULL,                                /* init thread */
+    NULL,                                /* exit thread */
+    NULL,                                /* exit process */
     ngx_http_log_zmq_exitmaster,         /* exit master */
     NGX_MODULE_V1_PADDING
 };
@@ -139,16 +139,16 @@ ngx_module_t  ngx_http_log_zmq_module = {
 ngx_int_t
 ngx_http_log_zmq_handler(ngx_http_request_t *r)
 {
-    ngx_http_log_zmq_loc_conf_t  *lccf;
-    ngx_http_log_zmq_element_conf_t *clecf;
+    ngx_http_log_zmq_loc_conf_t         *lccf;
+    ngx_http_log_zmq_element_conf_t     *clecf;
     ngx_http_log_zmq_loc_element_conf_t *lelcf, *clelcf;
-    ngx_uint_t                  i;
-    ngx_str_t                   data;
-    ngx_str_t                   zmq_data;
-    ngx_str_t                   endpoint;
-    ngx_pool_t                 *pool = r->connection->pool;
+    ngx_uint_t                          i;
+    ngx_str_t                           data;
+    ngx_str_t                           zmq_data;
+    ngx_str_t                           endpoint;
+    ngx_pool_t                          *pool = r->connection->pool;
+    ngx_log_t                           *log = r->connection->log;
     ngx_int_t (*serializer)(ngx_pool_t*, ngx_str_t*, ngx_str_t*, ngx_str_t*) = NULL;
-    ngx_log_t                  *log = r->connection->log;
     zmq_msg_t query;
     int rc;
 
@@ -425,13 +425,13 @@ ngx_http_log_zmq_create_loc_conf(ngx_conf_t *cf)
 static char *
 ngx_http_log_zmq_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
 {
-    ngx_http_log_zmq_main_conf_t *bkmc;
-    ngx_http_log_zmq_loc_conf_t *prev = parent;
-    ngx_http_log_zmq_loc_conf_t *conf = child;
-    ngx_http_log_zmq_element_conf_t *element;
-    ngx_http_log_zmq_element_conf_t *curelement;
+    ngx_http_log_zmq_main_conf_t        *bkmc;
+    ngx_http_log_zmq_loc_conf_t         *prev = parent;
+    ngx_http_log_zmq_loc_conf_t         *conf = child;
+    ngx_http_log_zmq_element_conf_t     *element;
+    ngx_http_log_zmq_element_conf_t     *curelement;
     ngx_http_log_zmq_loc_element_conf_t *locelement;
-    ngx_uint_t                       i, j, found;
+    ngx_uint_t                          i, j, found;
 
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_zmq_module);
 
@@ -528,15 +528,15 @@ ngx_http_log_zmq_set_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_log_zmq_loc_conf_t         *llcf = conf;
     ngx_http_log_zmq_element_conf_t     *lecf;
     ngx_http_log_zmq_loc_element_conf_t *lelcf;
-    ngx_str_t                             *value;
-    const unsigned char                   *kind;
-    ngx_int_t                             iothreads;
-    ngx_int_t                             qlen;
-    ngx_url_t                             u;
+    ngx_str_t                           *value;
+    const unsigned char                 *kind;
+    ngx_int_t                           iothreads;
+    ngx_int_t                           qlen;
+    ngx_url_t                           u;
     ngx_log_zmq_server_t                *endpoint;
-    char                                  *connection;
-    size_t                                connlen;
-    size_t                                zmq_hdlen;
+    char                                *connection;
+    size_t                              connlen;
+    size_t                              zmq_hdlen;
 
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_zmq_module);
 
@@ -751,10 +751,10 @@ ngx_http_log_zmq_set_format(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_log_zmq_loc_conf_t         *llcf = conf;
     ngx_http_log_zmq_element_conf_t     *lecf;
     ngx_http_log_zmq_loc_element_conf_t *lelcf;
-    ngx_str_t                             *log_format, *value;
-    ngx_http_script_compile_t             sc;
-    size_t                                i, len, log_len;
-    u_char                                *p;
+    ngx_str_t                           *log_format, *value;
+    ngx_http_script_compile_t           sc;
+    size_t                              i, len, log_len;
+    u_char                              *p;
 
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_zmq_module);
 
@@ -889,8 +889,8 @@ ngx_http_log_zmq_set_endpoint(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_log_zmq_loc_conf_t         *llcf = conf;
     ngx_http_log_zmq_element_conf_t     *lecf;
     ngx_http_log_zmq_loc_element_conf_t *lelcf;
-    ngx_str_t                             *value;
-    ngx_http_script_compile_t             sc;
+    ngx_str_t                           *value;
+    ngx_http_script_compile_t           sc;
 
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_zmq_module);
 
@@ -981,8 +981,8 @@ ngx_http_log_zmq_set_off(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_http_log_zmq_loc_conf_t         *llcf = conf;
     ngx_http_log_zmq_element_conf_t     *lecf;
     ngx_http_log_zmq_loc_element_conf_t *lelcf;
-    ngx_str_t                             *value;
-    ngx_uint_t                            i, found = 0;
+    ngx_str_t                           *value;
+    ngx_uint_t                          i, found = 0;
 
     bkmc = ngx_http_conf_get_module_main_conf(cf, ngx_http_log_zmq_module);
 
@@ -1094,7 +1094,7 @@ static ngx_http_log_zmq_element_conf_t *
 ngx_http_log_zmq_create_definition(ngx_conf_t *cf, ngx_http_log_zmq_main_conf_t *bkmc, ngx_str_t *name)
 {
     ngx_http_log_zmq_element_conf_t *lecf = NULL;
-    ngx_uint_t                         i, found;
+    ngx_uint_t                      i, found;
 
     found = 0;
 
@@ -1138,7 +1138,7 @@ static ngx_http_log_zmq_loc_element_conf_t *
 ngx_http_log_zmq_create_location_element(ngx_conf_t *cf, ngx_http_log_zmq_loc_conf_t *llcf, ngx_str_t *name)
 {
     ngx_http_log_zmq_loc_element_conf_t *lelcf = NULL;
-    ngx_uint_t                             i, found;
+    ngx_uint_t                          i, found;
 
     found = 0;
 

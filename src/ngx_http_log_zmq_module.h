@@ -45,9 +45,9 @@ typedef enum{
  * string with the connection name (prepended with tcp://)
  */
 typedef struct {
-    ngx_log_zmq_addr_t        peer_addr;    /**< Address URL */
-    ngx_log_zmq_server_kind   kind;         /**< Type of server (TCP|IPC|INPROC) */
-    ngx_str_t                    *connection; /**< Final connection string
+    ngx_log_zmq_addr_t       peer_addr;    /**< Address URL */
+    ngx_log_zmq_server_kind  kind;         /**< Type of server (TCP|IPC|INPROC) */
+    ngx_str_t               *connection;   /**< Final connection string
                                                    tcp://<ip>:<port>
                                                    ipc://<endpoint>
                                                    inproc://<endpoint> */
@@ -74,7 +74,7 @@ typedef struct {
  * @note nginx has a ngx flag type, we should change sset/fset/eset to that type
  */
 typedef struct {
-    ngx_log_zmq_server_t *server;              /**< Configuration server */
+    ngx_log_zmq_server_t   *server;              /**< Configuration server */
     ngx_int_t               iothreads;           /**< Configuration number of threads */
     ngx_int_t               qlen;                /**< Configuration queue length */
     ngx_array_t            *data_lengths;        /**< Data length after format and compiling */
@@ -82,7 +82,7 @@ typedef struct {
     ngx_array_t            *endpoint_lengths;    /**< Endpoint length after format and compiling */
     ngx_array_t            *endpoint_values;     /**< Endpoint values */
     ngx_cycle_t            *cycle;               /**< Current configuration cycle */
-    ngx_http_log_zmq_ctx_t *ctx;               /**< Current module context */
+    ngx_http_log_zmq_ctx_t *ctx;                 /**< Current module context */
     ngx_str_t              *name;                /**< Configuration name */
     ngx_log_t              *log;                 /**< Pointer to the logger */
     ngx_uint_t              sset;                /**< Was the server setted? */
@@ -95,7 +95,7 @@ typedef struct {
  * @brief location log configuration
  */
 typedef struct {
-    ngx_uint_t                         off;      /**< Is this element deactivated? */
+    ngx_uint_t                       off;      /**< Is this element deactivated? */
     ngx_http_log_zmq_element_conf_t *element;  /**< Pointer to the log definition */
 } ngx_http_log_zmq_loc_element_conf_t;
 
