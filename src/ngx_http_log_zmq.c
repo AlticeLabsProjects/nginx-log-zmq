@@ -210,7 +210,7 @@ zmq_create_socket(ngx_pool_t *pool, ngx_http_log_zmq_element_conf_t *cf)
  * @return An ngx_int_t with NGX_OK | NGX_ERROR
  */
 ngx_int_t
-log_zmq_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, ngx_str_t *output) {
+log_zmq_serialize(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *data, ngx_str_t *output) {
     /* the final message sent to zmq is composed by endpoint+data
      * eg: endpoint = /stratus/, data = {'num':1}
      * final message /stratus/{'num':1}

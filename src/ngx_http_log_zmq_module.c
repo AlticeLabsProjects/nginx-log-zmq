@@ -252,7 +252,7 @@ ngx_http_log_zmq_handler(ngx_http_request_t *r)
         }
 
         /* serialize to the final message format */
-        serializer = &log_zmq_serialize_zmq;
+        serializer = &log_zmq_serialize;
 
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0, "log_zmq: handler(): serializing message");
         if (NGX_ERROR == (*serializer)(pool, &endpoint, &data, &zmq_data)) {

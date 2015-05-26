@@ -76,6 +76,6 @@ int zmq_init_ctx(ngx_http_log_zmq_ctx_t *ctx);
 void zmq_term_ctx(ngx_http_log_zmq_ctx_t *ctx);
 int zmq_create_ctx(ngx_http_log_zmq_element_conf_t *cf);
 int zmq_create_socket(ngx_pool_t *pool, ngx_http_log_zmq_element_conf_t *cf);
-ngx_int_t log_zmq_serialize_zmq(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *payload, ngx_str_t *output);
+ngx_int_t log_zmq_serialize(ngx_pool_t *pool, ngx_str_t *endpoint, ngx_str_t *payload, ngx_str_t *output);
 
 #endif
