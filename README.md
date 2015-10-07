@@ -203,6 +203,7 @@ Compatibility
 
 The following versions of nginx are known to work with this module:
 
+* 1.8.0
 * 1.6.x (last tested: 1.6.2)
 * 1.5.x
 * 1.4.x (last tested: 1.4.4)
