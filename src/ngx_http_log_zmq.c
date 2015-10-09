@@ -137,8 +137,7 @@ int
 zmq_create_socket(ngx_pool_t *pool, ngx_http_log_zmq_element_conf_t *cf)
 {
     int linger = ZMQ_NGINX_LINGER, rc = 0;
-    int qlen = cf->qlen != ZMQ_NGINX_QUEUE_LENGTH ? cf->qlen : ZMQ_NGINX_QUEUE_LENGTH;
-
+    zmq_hwm_t qlen = cf->qlen < 0 ? ZMQ_NGINX_QUEUE_LENGTH : cf->qlen;
     char *connection;
 
     /* verify if we have a context created */

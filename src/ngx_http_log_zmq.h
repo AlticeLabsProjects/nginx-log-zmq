@@ -39,9 +39,11 @@
 #define ZMQ_POLL_MSEC	1000
 #define ZMQ_SNDHWM		ZMQ_HWM
 #define	ZMQ_RCVHWM		ZMQ_HWM
+#define zmq_hwm_t uint64_t
 
 #else
 
+#define zmq_hwm_t int
 #define ZMQ_POLL_MSEC	1
 
 #endif
