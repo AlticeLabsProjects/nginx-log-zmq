@@ -19,6 +19,4 @@ install:
   - cd "nginx-${VER_NGINX}"
   - ./configure --add-module=../..
 
-  - [ "${VER_NGINX}" = "1.9.11" ] && ./configure --add-dynamic-module=../..
-
 script: make
