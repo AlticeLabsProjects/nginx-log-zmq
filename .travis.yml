@@ -5,7 +5,7 @@ compiler:
 
 env:
   - VER_NGINX=1.6.3
-  - VER_NGINX=1.8.0
+  - VER_NGINX=1.8.1
 
 before_install:
   - sudo apt-get update -qq
