@@ -9,7 +9,7 @@ It's asynchronous and only requires a small library.
 
 _This module is not distributed with the nginx source._ See the [installation instructions](#installation).
 
-[![Build Status](https://travis-ci.org/sapo/nginx-log-zmq.svg?branch=master)](https://travis-ci.org/sapo/nginx-log-zmq)
+[![Build Status](https://travis-ci.org/alticelabs/nginx-log-zmq.svg?branch=master)](https://travis-ci.org/alticelabs/nginx-log-zmq)
 
 Table of Contents
 =================
@@ -229,7 +229,8 @@ Copyright & Licence
 
 The MIT License (MIT)
 
-Copyright (c) 2014 SAPO - PT Comunicações S.A
+Copyright (c) 2014-2015 SAPO - PT Comunicações S.A  
+Copyright (c) 2016 Altice Labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
