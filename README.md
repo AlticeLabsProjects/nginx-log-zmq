@@ -36,7 +36,7 @@ This module is already production ready.
 Description
 ===========
 
-This is a nginx logger module integrated with [ZeroMQ](http://zermq.org) library.
+This is a nginx logger module integrated with [ZeroMQ](http://zeromq.org) library.
 
 `nginx-log-zmq` provides a very efficient way to log data for one or more PUB/SUB subscribers, over one or more different endpoints. This can be useful for data gathering and processing.
 
