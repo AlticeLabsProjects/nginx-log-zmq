@@ -53,7 +53,7 @@ if [ "$ngx_module_link" = "DYNAMIC" ]; then
 
 	. auto/module
 
-elif [ "$ngx_module_link" = "YES" ]; then
+elif [[ "$ngx_module_link" = "YES" || "$ngx_module_link" == "ADDON" ]]; then
 	ngx_module_type=HTTP
 	ngx_module_name="$ZMQ_MODULE"
 	ngx_module_incs=
